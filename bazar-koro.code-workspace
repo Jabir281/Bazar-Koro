@@ -1,0 +1,13 @@
+{
+  "folders": [
+    { "name": "Client", "path": "client" },
+    { "name": "Server", "path": "server" },
+    { "name": "Shared", "path": "shared" }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/dist": true
+    }
+  }
+}
