@@ -1,5 +1,6 @@
 node_modules/
 .DS_Store
+.venv/
 .env
 .env.*
 dist/
@@ -7,4 +8,4 @@ build/
 coverage/
 *.log
 report_text.txt
-cse471_group_07.docx
+*.pdf
