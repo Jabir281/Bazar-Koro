@@ -1,0 +1,111 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+
+export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Login failed");
+      }
+
+      // Store token (in a real app, use better state management or HttpOnly cookies if possible)
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      navigate("/dashboard"); // We'll implement this later
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-[#e8eaf0] text-[#37392d] font-['Plus_Jakarta_Sans'] min-h-screen flex items-center justify-center p-6">
+      <div className="neomorph-raised rounded-[2rem] p-10 w-full max-w-md bg-[#e8eaf0]">
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-block text-xl font-bold text-[#707d40] tracking-tight mb-6">Bazar Koro</Link>
+          <h2 className="text-3xl font-extrabold text-[#37392d] tracking-tight mb-2">Welcome Back</h2>
+          <p className="text-[#646657] text-sm">Please enter your details to sign in</p>
+        </div>
+
+        {error && (
+          <div className="mb-6 p-4 rounded-xl bg-red-50 neomorph-inset text-red-600 text-sm font-medium text-center">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div>
+            <label className="block text-xs font-bold text-[#646657] uppercase tracking-widest mb-2 pl-1">Email</label>
+            <div className="neomorph-inset rounded-xl p-1">
+              <input 
+                type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com" 
+                className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 placeholder:text-slate-400 outline-none text-sm font-medium text-[#37392d]" 
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-[#646657] uppercase tracking-widest mb-2 pl-1">Password</label>
+            <div className="neomorph-inset rounded-xl p-1">
+              <input 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••" 
+                className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 placeholder:text-slate-400 outline-none text-sm font-medium text-[#37392d]" 
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between px-1">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input type="checkbox" className="hidden" />
+              <div className="neomorph-inset w-5 h-5 rounded-md flex items-center justify-center transition-all bg-[#e8eaf0]">
+                <div className="w-2.5 h-2.5 bg-[#707d40] rounded-sm opacity-0 group-has-[:checked]:opacity-100 transition-opacity"></div>
+              </div>
+              <span className="text-xs font-bold text-[#646657]">Remember me</span>
+            </label>
+            <Link to="#" className="text-xs font-bold text-[#707d40] hover:underline">Forgot Password?</Link>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full py-4 mt-4 rounded-xl neomorph-raised bg-[#e8eaf0] text-[#707d40] font-bold text-lg neomorph-active transition-all disabled:opacity-50"
+          >
+            {loading ? "Signing In..." : "Sign In"}
+          </button>
+        </form>
+
+        <p className="mt-8 text-center text-sm font-medium text-[#646657]">
+          Don't have an account? <Link to="/signup" className="text-[#707d40] hover:underline font-bold">Sign up</Link>
+        </p>
+      </div>
+    </div>
+  );
+}

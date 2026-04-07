@@ -12,7 +12,7 @@ export interface AuthedRequest extends Request {
   }
 }
 
-export function requireAuth(req: AuthedRequest, res: Response, next: NextFunction) {
+export async function requireAuth(req: AuthedRequest, res: Response, next: NextFunction) {
   const header = req.header('authorization')
   const token = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : null
 
@@ -22,7 +22,7 @@ export function requireAuth(req: AuthedRequest, res: Response, next: NextFunctio
 
   try {
     const claims = verifyToken(token)
-    const user = getUserById(claims.sub)
+    const user = await getUserById(claims.sub)
     if (!user) return res.status(401).json({ error: 'User not found' })
 
     const requestedRole = (req.header('x-active-role') ?? '').toLowerCase() as UserRole

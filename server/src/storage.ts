@@ -1,39 +1,57 @@
 import { nanoid } from 'nanoid'
 import type { Order, UserPublic, UserRole } from '@bazar-koro/shared'
+import { User } from './models/User.js'
 
 export interface UserRecord extends UserPublic {
   passwordHash: string
 }
 
-const usersById = new Map<string, UserRecord>()
-const usersByEmail = new Map<string, UserRecord>()
 const ordersById = new Map<string, Order>()
 
-export function createUser(input: {
+export async function createUser(input: {
   name: string
   email: string
   roles: UserRole[]
   passwordHash: string
-}): UserRecord {
-  const id = nanoid()
-  const user: UserRecord = {
-    id,
+}): Promise<UserRecord> {
+  const user = new User({
     name: input.name,
     email: input.email.toLowerCase(),
     roles: input.roles,
     passwordHash: input.passwordHash,
+  })
+  const saved = await user.save()
+  return {
+    id: saved._id.toString(),
+    name: saved.name,
+    email: saved.email,
+    roles: saved.roles as UserRole[],
+    passwordHash: saved.passwordHash,
   }
-  usersById.set(id, user)
-  usersByEmail.set(user.email, user)
-  return user
 }
 
-export function getUserByEmail(email: string): UserRecord | undefined {
-  return usersByEmail.get(email.toLowerCase())
+export async function getUserByEmail(email: string): Promise<UserRecord | undefined> {
+  const user = await User.findOne({ email: email.toLowerCase() })
+  if (!user) return undefined
+  return {
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    roles: user.roles as UserRole[],
+    passwordHash: user.passwordHash,
+  }
 }
 
-export function getUserById(id: string): UserRecord | undefined {
-  return usersById.get(id)
+export async function getUserById(id: string): Promise<UserRecord | undefined> {
+  const user = await User.findById(id)
+  if (!user) return undefined
+  return {
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    roles: user.roles as UserRole[],
+    passwordHash: user.passwordHash,
+  }
 }
 
 export function createOrder(input: {
