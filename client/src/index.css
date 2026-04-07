@@ -2,8 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    @apply bg-[#e8eaf0] text-[#37392d];
+  }
+}
+
+@layer utilities {
+  .neomorph-raised {
+    box-shadow: 6px 6px 12px rgba(0,0,0,0.08), -6px -6px 12px rgba(255,255,255,0.6);
+  }
+  .neomorph-inset {
+    box-shadow: inset 4px 4px 8px rgba(0,0,0,0.06), inset -4px -4px 8px rgba(255,255,255,0.5);
+  }
+  .neomorph-active:active {
+    box-shadow: inset 4px 4px 8px rgba(0,0,0,0.06), inset -4px -4px 8px rgba(255,255,255,0.5);
+    transform: scale(0.98);
+  }
+}
+
 html,
-body {
+body,
+#root {
   height: 100%;
 }
 
