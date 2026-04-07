@@ -41,9 +41,9 @@ export default function Landing() {
               <Link to="/signup" className="px-8 py-4 rounded-2xl text-[#707d40] font-bold text-lg neomorph-raised neomorph-active transition-all flex items-center gap-2">
                 Start Trading <ArrowRight className="w-5 h-5" />
               </Link>
-              <button className="px-8 py-4 rounded-2xl text-[#646657] font-bold text-lg neomorph-inset flex items-center shadow-inner hover:bg-[#e1e3e9] transition-colors">
-                Browse Marketplace
-              </button>
+              <Link to="/search" className="px-8 py-4 rounded-2xl text-[#646657] font-bold text-lg neomorph-inset flex items-center shadow-inner hover:bg-[#e1e3e9] transition-colors">
+              Browse Marketplace
+              </Link>
             </div>
           </div>
           

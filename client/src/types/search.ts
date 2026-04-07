@@ -1,0 +1,35 @@
+// client/src/types/search.ts
+export interface SearchFilters {
+  keyword?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  lat?: number;
+  lng?: number;
+  radius?: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  storeId: string;
+  location?: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+  distance?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SearchResponse {
+  products: Product[];
+  total: number;
+  page: number;
+  totalPages: number;
+}

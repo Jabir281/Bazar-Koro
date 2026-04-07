@@ -46,3 +46,6 @@ export interface ApiError {
   error: string;
   details?: unknown;
 }
+
+
+export * from './types/search';
