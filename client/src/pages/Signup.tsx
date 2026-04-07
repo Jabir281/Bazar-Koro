@@ -44,12 +44,12 @@ export default function Signup() {
   };
 
   return (
-    <div className="bg-[#e8eaf0] text-[#37392d] font-['Plus_Jakarta_Sans'] min-h-screen flex items-center justify-center p-6">
-      <div className="neomorph-raised rounded-[2rem] p-10 w-full max-w-md bg-[#e8eaf0]">
+    <div className="bg-surface text-main font-['Plus_Jakarta_Sans'] min-h-screen flex items-center justify-center p-6">
+      <div className="neomorph-raised rounded-[2rem] p-10 w-full max-w-md bg-surface">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-block text-xl font-bold text-[#707d40] tracking-tight mb-6">Bazar Koro</Link>
-          <h2 className="text-3xl font-extrabold text-[#37392d] tracking-tight mb-2">Create Account</h2>
-          <p className="text-[#646657] text-sm">Join your local neighborhood network</p>
+          <Link to="/" className="inline-block text-xl font-bold text-primary tracking-tight mb-6">Bazar Koro</Link>
+          <h2 className="text-3xl font-extrabold text-main tracking-tight mb-2">Create Account</h2>
+          <p className="text-muted text-sm">Join your local neighborhood network</p>
         </div>
 
         {error && (
@@ -60,40 +60,40 @@ export default function Signup() {
 
         <form onSubmit={handleSignup} className="space-y-5">
           <div>
-            <label className="block text-xs font-bold text-[#646657] uppercase tracking-widest mb-2 pl-1">Full Name</label>
+            <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2 pl-1">Full Name</label>
             <div className="neomorph-inset rounded-xl p-1">
               <input 
                 type="text" 
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe" 
-                className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 placeholder:text-slate-400 outline-none text-sm font-medium text-[#37392d]" 
+                className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 placeholder:text-slate-400 outline-none text-sm font-medium text-main" 
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#646657] uppercase tracking-widest mb-2 pl-1">Email</label>
+            <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2 pl-1">Email</label>
             <div className="neomorph-inset rounded-xl p-1">
               <input 
                 type="email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com" 
-                className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 placeholder:text-slate-400 outline-none text-sm font-medium text-[#37392d]" 
+                className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 placeholder:text-slate-400 outline-none text-sm font-medium text-main" 
                 required
               />
             </div>
           </div>
 
           <div>
-             <label className="block text-xs font-bold text-[#646657] uppercase tracking-widest mb-2 pl-1">Primary Role</label>
-             <div className="neomorph-inset rounded-xl p-2 flex items-center gap-2 pr-4 bg-[#e8eaf0]">
+             <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2 pl-1">Primary Role</label>
+             <div className="neomorph-inset rounded-xl p-2 flex items-center gap-2 pr-4 bg-surface">
                  <select 
                    value={role}
                    onChange={(e) => setRole(e.target.value)}
-                   className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold outline-none cursor-pointer pl-2 py-2 text-[#37392d]"
+                   className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold outline-none cursor-pointer pl-2 py-2 text-main"
                  >
                      <option value="buyer">Buyer</option>
                      <option value="seller">Seller</option>
@@ -103,14 +103,14 @@ export default function Signup() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#646657] uppercase tracking-widest mb-2 pl-1">Password</label>
+            <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2 pl-1">Password</label>
             <div className="neomorph-inset rounded-xl p-1">
               <input 
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••" 
-                className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 placeholder:text-slate-400 outline-none text-sm font-medium text-[#37392d]" 
+                className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 placeholder:text-slate-400 outline-none text-sm font-medium text-main" 
                 required
                 minLength={6}
               />
@@ -120,14 +120,14 @@ export default function Signup() {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full py-4 mt-6 rounded-xl neomorph-raised bg-[#e8eaf0] text-[#707d40] font-bold text-lg neomorph-active transition-all disabled:opacity-50"
+            className="w-full py-4 mt-6 rounded-xl neomorph-raised bg-surface text-primary font-bold text-lg neomorph-active transition-all disabled:opacity-50"
           >
             {loading ? "Creating Account..." : "Sign Up"}
           </button>
         </form>
 
-        <p className="mt-8 text-center text-sm font-medium text-[#646657]">
-          Already have an account? <Link to="/login" className="text-[#707d40] hover:underline font-bold">Log in</Link>
+        <p className="mt-8 text-center text-sm font-medium text-muted">
+          Already have an account? <Link to="/login" className="text-primary hover:underline font-bold">Log in</Link>
         </p>
       </div>
     </div>

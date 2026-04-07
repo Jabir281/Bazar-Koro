@@ -54,6 +54,10 @@ export async function getUserById(id: string): Promise<UserRecord | undefined> {
   }
 }
 
+export async function addRoleToUser(id: string, role: UserRole): Promise<void> {
+  await User.findByIdAndUpdate(id, { $addToSet: { roles: role } })
+}
+
 export function createOrder(input: {
   buyerId: string
   lines: Order['lines']

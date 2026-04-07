@@ -3,7 +3,7 @@ import { z } from 'zod'
 import type { UserRole } from '@bazar-koro/shared'
 
 import { hashPassword, signToken, verifyPassword } from '../auth.js'
-import { createUser, getUserByEmail, getUserById } from '../storage.js'
+import { createUser, getUserByEmail, getUserById, addRoleToUser } from '../storage.js'
 import type { AuthedRequest } from '../middleware/auth.js'
 
 const rolesSchema = z.array(z.enum(['buyer', 'seller', 'driver', 'marketer', 'admin'] as const)).min(1)
@@ -67,6 +67,34 @@ export async function meRoute(req: AuthedRequest, res: Response) {
     const user = await getUserById(req.user.id)
     if (!user) return res.status(404).json({ error: 'User not found' })
     return res.json({ id: user.id, name: user.name, email: user.email, roles: user.roles, activeRole: req.user.activeRole })
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Server error', details: error.message })
+  }
+}
+
+export async function addRoleRoute(req: AuthedRequest, res: Response) {
+  if (!req.user) return res.status(401).json({ error: 'Not authenticated' })
+  
+  const parsed = z.object({ role: rolesSchema.element }).safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid role', details: parsed.error.flatten() })
+
+  try {
+    await addRoleToUser(req.user.id, parsed.data.role)
+    const updatedUser = await getUserById(req.user.id)
+    if (!updatedUser) return res.status(404).json({ error: 'User not found' })
+    
+    // We also sign a new token with the updated roles just in case, though current logic doesn't strictly require it
+    const token = signToken(updatedUser)
+    
+    return res.json({ 
+      token, 
+      user: { 
+        id: updatedUser.id, 
+        name: updatedUser.name, 
+        email: updatedUser.email, 
+        roles: updatedUser.roles 
+      } 
+    })
   } catch (error: any) {
     return res.status(500).json({ error: 'Server error', details: error.message })
   }

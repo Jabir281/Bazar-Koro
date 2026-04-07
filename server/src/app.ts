@@ -2,7 +2,7 @@ import express from 'express'
 import cors from 'cors'
 
 import { healthRoute } from './routes/health.js'
-import { loginRoute, meRoute, registerRoute } from './routes/auth.js'
+import { loginRoute, meRoute, registerRoute, addRoleRoute } from './routes/auth.js'
 import { createOrderRoute, getOrderRoute, listMyOrdersRoute, updateOrderStatusRoute } from './routes/orders.js'
 import { requireAuth } from './middleware/auth.js'
 import { addProductToStoreRoute, createStoreRoute, getMyStoresRoute, getStoreWithProductsRoute, getAllStoresRoute } from './routes/stores.js'
@@ -18,6 +18,7 @@ export function createApp() {
   app.post('/api/auth/register', registerRoute as express.RequestHandler)
   app.post('/api/auth/login', loginRoute as express.RequestHandler)
   app.get('/api/me', requireAuth, meRoute as express.RequestHandler)
+  app.post('/api/me/roles', requireAuth, addRoleRoute as express.RequestHandler)
 
   app.get('/api/orders', requireAuth, listMyOrdersRoute as express.RequestHandler)
   app.post('/api/orders', requireAuth, createOrderRoute as express.RequestHandler)

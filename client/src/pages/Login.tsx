@@ -39,12 +39,12 @@ export default function Login() {
   };
 
   return (
-    <div className="bg-[#e8eaf0] text-[#37392d] font-['Plus_Jakarta_Sans'] min-h-screen flex items-center justify-center p-6">
-      <div className="neomorph-raised rounded-[2rem] p-10 w-full max-w-md bg-[#e8eaf0]">
+    <div className="bg-surface text-main font-['Plus_Jakarta_Sans'] min-h-screen flex items-center justify-center p-6">
+      <div className="neomorph-raised rounded-[2rem] p-10 w-full max-w-md bg-surface">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-block text-xl font-bold text-[#707d40] tracking-tight mb-6">Bazar Koro</Link>
-          <h2 className="text-3xl font-extrabold text-[#37392d] tracking-tight mb-2">Welcome Back</h2>
-          <p className="text-[#646657] text-sm">Please enter your details to sign in</p>
+          <Link to="/" className="inline-block text-xl font-bold text-primary tracking-tight mb-6">Bazar Koro</Link>
+          <h2 className="text-3xl font-extrabold text-main tracking-tight mb-2">Welcome Back</h2>
+          <p className="text-muted text-sm">Please enter your details to sign in</p>
         </div>
 
         {error && (
@@ -55,28 +55,28 @@ export default function Login() {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-xs font-bold text-[#646657] uppercase tracking-widest mb-2 pl-1">Email</label>
+            <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2 pl-1">Email</label>
             <div className="neomorph-inset rounded-xl p-1">
               <input 
                 type="email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com" 
-                className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 placeholder:text-slate-400 outline-none text-sm font-medium text-[#37392d]" 
+                className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 placeholder:text-slate-400 outline-none text-sm font-medium text-main" 
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#646657] uppercase tracking-widest mb-2 pl-1">Password</label>
+            <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2 pl-1">Password</label>
             <div className="neomorph-inset rounded-xl p-1">
               <input 
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••" 
-                className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 placeholder:text-slate-400 outline-none text-sm font-medium text-[#37392d]" 
+                className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 placeholder:text-slate-400 outline-none text-sm font-medium text-main" 
                 required
               />
             </div>
@@ -85,25 +85,25 @@ export default function Login() {
           <div className="flex items-center justify-between px-1">
             <label className="flex items-center gap-2 cursor-pointer group">
               <input type="checkbox" className="hidden" />
-              <div className="neomorph-inset w-5 h-5 rounded-md flex items-center justify-center transition-all bg-[#e8eaf0]">
-                <div className="w-2.5 h-2.5 bg-[#707d40] rounded-sm opacity-0 group-has-[:checked]:opacity-100 transition-opacity"></div>
+              <div className="neomorph-inset w-5 h-5 rounded-md flex items-center justify-center transition-all bg-surface">
+                <div className="w-2.5 h-2.5 bg-primary rounded-sm opacity-0 group-has-[:checked]:opacity-100 transition-opacity"></div>
               </div>
-              <span className="text-xs font-bold text-[#646657]">Remember me</span>
+              <span className="text-xs font-bold text-muted">Remember me</span>
             </label>
-            <Link to="#" className="text-xs font-bold text-[#707d40] hover:underline">Forgot Password?</Link>
+            <Link to="#" className="text-xs font-bold text-primary hover:underline">Forgot Password?</Link>
           </div>
 
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full py-4 mt-4 rounded-xl neomorph-raised bg-[#e8eaf0] text-[#707d40] font-bold text-lg neomorph-active transition-all disabled:opacity-50"
+            className="w-full py-4 mt-4 rounded-xl neomorph-raised bg-surface text-primary font-bold text-lg neomorph-active transition-all disabled:opacity-50"
           >
             {loading ? "Signing In..." : "Sign In"}
           </button>
         </form>
 
-        <p className="mt-8 text-center text-sm font-medium text-[#646657]">
-          Don't have an account? <Link to="/signup" className="text-[#707d40] hover:underline font-bold">Sign up</Link>
+        <p className="mt-8 text-center text-sm font-medium text-muted">
+          Don't have an account? <Link to="/signup" className="text-primary hover:underline font-bold">Sign up</Link>
         </p>
       </div>
     </div>
