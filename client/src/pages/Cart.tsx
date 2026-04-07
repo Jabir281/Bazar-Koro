@@ -1,0 +1,261 @@
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Minus, Plus, Trash2 } from "lucide-react";
+
+interface CartItem {
+  productId: string;
+  storeId: string;
+  storeName?: string;
+  name: string;
+  unitPrice: number;
+  qty: number;
+  imageUrl?: string;
+}
+
+interface CartGroup {
+  storeId: string;
+  storeName?: string;
+  items: CartItem[];
+  subtotal: number;
+}
+
+interface CartSummary {
+  items: CartItem[];
+  grouped: CartGroup[];
+  subtotal: number;
+  deliveryCharge: number;
+  total: number;
+}
+
+export default function Cart() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<CartSummary | null>(null);
+  const [busyProductId, setBusyProductId] = useState<string | null>(null);
+
+  const token = useMemo(() => localStorage.getItem("token"), []);
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+    void fetchSummary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchSummary = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/cart/summary", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "x-active-role": "buyer",
+        },
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
+      if (!res.ok) throw new Error("Failed to load cart");
+      setSummary((await res.json()) as CartSummary);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateQty = async (productId: string, nextQty: number) => {
+    if (!token) return;
+    setBusyProductId(productId);
+    try {
+      const res = await fetch("/api/cart/update-qty", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "x-active-role": "buyer",
+        },
+        body: JSON.stringify({ productId, qty: nextQty }),
+      });
+      if (!res.ok) throw new Error("Failed to update quantity");
+      setSummary((await res.json()) as CartSummary);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setBusyProductId(null);
+    }
+  };
+
+  const removeItem = async (productId: string) => {
+    if (!token) return;
+    setBusyProductId(productId);
+    try {
+      const res = await fetch("/api/cart/remove", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "x-active-role": "buyer",
+        },
+        body: JSON.stringify({ productId }),
+      });
+      if (!res.ok) throw new Error("Failed to remove item");
+      setSummary((await res.json()) as CartSummary);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setBusyProductId(null);
+    }
+  };
+
+  if (loading) return <div className="min-h-screen bg-surface flex items-center justify-center">Loading...</div>;
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center p-6">
+        <div className="neomorph-inset rounded-2xl p-6 text-center text-red-500 max-w-sm w-full">
+          {error}
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="mt-4 w-full bg-primary text-white py-2 rounded-xl neomorph-raised active:neomorph-inset transition-all font-semibold"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const groups = summary?.grouped ?? [];
+  const isEmpty = (summary?.items?.length ?? 0) === 0;
+
+  return (
+    <div className="min-h-screen bg-surface text-main font-['Plus_Jakarta_Sans'] p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-300">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="p-3 bg-surface neomorph-raised hover:neomorph-inset active:neomorph-inset transition-all rounded-full text-primary"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tight">Your Cart</h1>
+              <p className="text-sm font-medium text-muted">Items are grouped by store</p>
+            </div>
+          </div>
+        </div>
+
+        {isEmpty ? (
+          <div className="neomorph-inset rounded-3xl p-12 text-center text-muted font-medium">Your cart is empty.</div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              {groups.map((g) => (
+                <div key={g.storeId} className="neomorph-raised rounded-3xl p-6">
+                  <div className="flex items-start justify-between gap-4 mb-4 pb-4 border-b border-slate-200">
+                    <div>
+                      <h2 className="text-xl font-extrabold tracking-tight">{g.storeName ?? "Store"}</h2>
+                      <p className="text-xs font-semibold text-slate-500">{g.items.length} item(s)</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Store Subtotal</p>
+                      <p className="text-lg font-extrabold text-primary">TK {g.subtotal.toFixed(2)}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {g.items.map((item) => {
+                      const isBusy = busyProductId === item.productId;
+                      return (
+                        <div key={item.productId} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 neomorph-inset rounded-2xl p-4">
+                          <div className="w-full sm:w-20 h-20 neomorph-inset rounded-xl overflow-hidden bg-white flex items-center justify-center">
+                            {item.imageUrl ? (
+                              <img src={item.imageUrl} alt={item.name} className="w-full h-full object-contain mix-blend-multiply" />
+                            ) : (
+                              <div className="text-xs text-slate-400">No image</div>
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <h3 className="font-bold text-base truncate">{item.name}</h3>
+                                <p className="text-xs text-muted font-medium">TK {item.unitPrice.toFixed(2)} each</p>
+                              </div>
+                              <button
+                                onClick={() => removeItem(item.productId)}
+                                disabled={isBusy}
+                                className="p-2 rounded-xl neomorph-raised active:neomorph-inset transition-all text-red-500 disabled:opacity-60"
+                                title="Remove"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => updateQty(item.productId, Math.max(0, item.qty - 1))}
+                                  disabled={isBusy}
+                                  className="p-2 rounded-xl neomorph-raised active:neomorph-inset transition-all disabled:opacity-60"
+                                  title="Decrease"
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </button>
+                                <div className="min-w-[2.5rem] text-center font-extrabold">{item.qty}</div>
+                                <button
+                                  onClick={() => updateQty(item.productId, item.qty + 1)}
+                                  disabled={isBusy}
+                                  className="p-2 rounded-xl neomorph-raised active:neomorph-inset transition-all disabled:opacity-60"
+                                  title="Increase"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </button>
+                              </div>
+
+                              <div className="text-right">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Line Total</p>
+                                <p className="text-base font-extrabold">TK {(item.unitPrice * item.qty).toFixed(2)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="neomorph-raised rounded-3xl p-6 h-fit">
+              <h2 className="text-xl font-extrabold tracking-tight mb-4">Summary</h2>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm font-semibold">
+                  <span className="text-muted">Subtotal</span>
+                  <span>TK {(summary?.subtotal ?? 0).toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm font-semibold">
+                  <span className="text-muted">Delivery</span>
+                  <span>TK {(summary?.deliveryCharge ?? 0).toFixed(2)}</span>
+                </div>
+                <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
+                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total</span>
+                  <span className="text-2xl font-extrabold text-primary">TK {(summary?.total ?? 0).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

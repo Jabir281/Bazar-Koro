@@ -15,6 +15,7 @@ export default function BuyerStoreView() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+   const [addingProductId, setAddingProductId] = useState<string | null>(null);
 
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -22,6 +23,33 @@ export default function BuyerStoreView() {
   useEffect(() => {
     fetchStoreAndProducts();
   }, [storeId]);
+
+   const addToCart = async (productId: string) => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+         navigate("/login");
+         return;
+      }
+
+      setAddingProductId(productId);
+      try {
+         const res = await fetch(`/api/cart/add`, {
+            method: "POST",
+            headers: {
+               "Content-Type": "application/json",
+               "Authorization": `Bearer ${token}`,
+               "x-active-role": "buyer",
+            },
+            body: JSON.stringify({ productId, qty: 1 }),
+         });
+
+         if (!res.ok) throw new Error("Failed to add to cart");
+      } catch (err: any) {
+         alert(err.message);
+      } finally {
+         setAddingProductId(null);
+      }
+   };
 
   const fetchStoreAndProducts = async () => {
     setLoading(true);
@@ -67,10 +95,19 @@ export default function BuyerStoreView() {
                 </p>
              </div>
           </div>
-          <div className="text-right hidden sm:block">
-             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Store Owner</p>
-             <p className="font-semibold text-lg">{store.ownerName}</p>
-          </div>
+               <div className="flex items-center gap-4">
+                  <button
+                     onClick={() => navigate("/buyer/cart")}
+                     className="px-4 py-2 rounded-xl neomorph-raised active:neomorph-inset transition-all font-semibold flex items-center gap-2 text-primary"
+                  >
+                     <ShoppingCart className="w-4 h-4" />
+                     <span>Cart</span>
+                  </button>
+                  <div className="text-right hidden sm:block">
+                      <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Store Owner</p>
+                      <p className="font-semibold text-lg">{store.ownerName}</p>
+                  </div>
+               </div>
         </div>
 
         {/* Products Grid */}
@@ -93,7 +130,11 @@ export default function BuyerStoreView() {
                     </div>
                     <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between gap-2">
                        <div className="text-xl font-extrabold text-primary">TK {p.price.toFixed(2)}</div>
-                       <button className="p-2 bg-primary text-white rounded-lg hover:scale-105 active:scale-95 transition-transform">
+                       <button
+                          onClick={() => addToCart(p.id)}
+                          disabled={addingProductId === p.id}
+                          className="p-2 bg-primary text-white rounded-lg hover:scale-105 active:scale-95 transition-transform disabled:opacity-60"
+                        >
                           <ShoppingCart className="w-5 h-5" />
                        </button>
                     </div>

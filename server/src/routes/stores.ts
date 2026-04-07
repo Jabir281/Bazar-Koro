@@ -2,7 +2,7 @@ import type { Response } from 'express';
 import { z } from 'zod';
 import type { AuthedRequest } from '../middleware/auth.js';
 import { Store } from '../models/Store.js';
-import { Product } from '../models/Product.js';
+import Product from '../models/Product.js';
 
 const storeSchema = z.object({
   name: z.string().min(1),
@@ -74,7 +74,7 @@ export async function getStoreWithProductsRoute(req: AuthedRequest, res: Respons
        return res.status(403).json({ error: 'Not your store' });
     }
 
-    const products = await Product.find({ storeId: store.id });
+    const products = await Product.find({ storeId: { $in: [store.id, store._id] } });
     return res.json({ store, products });
   } catch (error: any) {
     return res.status(500).json({ error: 'Server error', details: error.message });

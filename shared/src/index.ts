@@ -47,5 +47,40 @@ export interface ApiError {
   details?: unknown;
 }
 
+export interface SearchFilters {
+  keyword?: string
+  category?: string
+  minPrice?: number
+  maxPrice?: number
+  lat?: number
+  lng?: number
+  radius?: number
+  page?: number
+  limit?: number
+}
+
+export interface SearchProduct {
+  _id: string
+  name: string
+  description: string
+  price: number
+  category?: string
+  storeId: string
+  location?: {
+    type: 'Point'
+    coordinates: [number, number]
+  }
+  distance?: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface SearchResponse {
+  products: SearchProduct[]
+  total: number
+  page: number
+  totalPages: number
+}
+
 
 export * from './types/search';
