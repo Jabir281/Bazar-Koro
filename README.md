@@ -15,7 +15,13 @@ I wrote this document so the whole team can quickly understand **what each folde
 
 ```bash
 cd "D:\Bazar Koro"
-npm install
+npm run setup
+```
+
+If you prefer the raw npm command (same result):
+
+```bash
+npm ci
 ```
 
 ### Run both frontend + backend

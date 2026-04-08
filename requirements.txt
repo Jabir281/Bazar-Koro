@@ -1,0 +1,24 @@
+This repository is a Node.js (npm) monorepo.
+
+IMPORTANT:
+- `requirements.txt` is a Python convention and cannot be used like `npm i requirements.txt`.
+- For npm projects, dependencies live in `package.json` and versions are locked in `package-lock.json`.
+
+Prerequisites (recommended):
+- Node.js LTS (18+ recommended)
+- npm (comes with Node)
+
+One-command install (from repo root):
+- npm run setup
+
+Alternative installs:
+- npm ci        (recommended for clean, repeatable installs)
+- npm install   (OK for local development)
+
+Run dev:
+- npm run dev
+
+Backend health:
+- http://localhost:3000/api/health
+Frontend:
+- http://localhost:5173
