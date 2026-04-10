@@ -20,7 +20,13 @@ export default function Login() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        throw new Error("Cannot connect to the server. Please ensure the backend is running.");
+      }
       
       if (!response.ok) {
         throw new Error(data.error || "Login failed");
