@@ -9,6 +9,8 @@ import BuyerStoreView from "./pages/BuyerStoreView";
 import Cart from "./pages/Cart";
 import SearchPage from "./pages/SearchPage";
 import ProductDetail from "./pages/ProductDetail";
+import Success from "./pages/success";
+import Cancel from "./pages/cancel";
 
 function App() {
   return (
@@ -24,6 +26,8 @@ function App() {
         <Route path="/buyer/cart" element={<Cart />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="/success" element={<Success />} />
+        <Route path="/cancel" element={<Cancel />} />
       </Routes>
     </BrowserRouter>
   );

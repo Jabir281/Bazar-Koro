@@ -33,6 +33,7 @@ export default function Cart() {
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<CartSummary | null>(null);
   const [busyProductId, setBusyProductId] = useState<string | null>(null);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const token = useMemo(() => localStorage.getItem("token"), []);
 
@@ -112,6 +113,41 @@ export default function Cart() {
       alert(err.message);
     } finally {
       setBusyProductId(null);
+    }
+  };
+
+  const handleCheckout = async () => {
+    if (!summary || summary.items.length === 0) return;
+    setIsCheckingOut(true);
+
+    try {
+      const res = await fetch("/api/payment/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          items: summary.items.map((item) => ({
+            name: item.name,
+            price: item.unitPrice,
+            quantity: item.qty,
+          })),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || "Failed to get checkout URL");
+      }
+    } catch (err: any) {
+      console.error("Checkout Error:", err);
+      alert(err.message || "Something went wrong during checkout.");
+    } finally {
+      setIsCheckingOut(false);
     }
   };
 
@@ -252,6 +288,14 @@ export default function Cart() {
                   <span className="text-2xl font-extrabold text-primary">TK {(summary?.total ?? 0).toFixed(2)}</span>
                 </div>
               </div>
+
+              <button
+                onClick={handleCheckout}
+                disabled={isCheckingOut || isEmpty}
+                className="mt-8 w-full bg-primary text-white py-4 rounded-xl neomorph-raised hover:neomorph-inset active:neomorph-inset transition-all font-extrabold text-lg flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isCheckingOut ? "Connecting to Stripe..." : "Proceed to Checkout 💳"}
+              </button>
             </div>
           </div>
         )}

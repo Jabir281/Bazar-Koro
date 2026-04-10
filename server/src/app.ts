@@ -10,6 +10,9 @@ import { requireAuth } from './middleware/auth.js'
 import { addProductToStoreRoute, createStoreRoute, getMyStoresRoute, getStoreWithProductsRoute, getAllStoresRoute } from './routes/stores.js'
 import { addToCartRoute, getCartSummaryRoute, removeCartItemRoute, updateCartItemQtyRoute } from './routes/cart.js'
 
+// ✅ NEW: Import your payment router
+import paymentRoutes from './routes/payment.js'
+
 export function createApp() {
   const app = express()
 
@@ -36,6 +39,10 @@ export function createApp() {
   app.post('/api/cart/update-qty', requireAuth, updateCartItemQtyRoute as express.RequestHandler)
   app.post('/api/cart/remove', requireAuth, removeCartItemRoute as express.RequestHandler)
   app.get('/api/cart/summary', requireAuth, getCartSummaryRoute as express.RequestHandler)
+
+  // ✅ NEW: Payment Router
+  // We attach it to "/api/payment" so your Cart.tsx fetch call works perfectly
+  app.use('/api/payment', paymentRoutes)
 
   // Stores and Products
   app.get('/api/stores/all', requireAuth, getAllStoresRoute as express.RequestHandler)
