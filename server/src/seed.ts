@@ -7,28 +7,28 @@ const fakeStoreId = new mongoose.Types.ObjectId();
 
 const dummyProducts = [
   { 
-    name: "Asus ROG Gaming Laptop", 
+    name: "Lenovo Legion Gaming Laptop", 
     price: 1200, 
     category: "electronics",
     storeId: fakeStoreId,
     location: { type: "Point", coordinates: [90.4125, 23.8103] } // Dhaka coords
   },
   { 
-    name: "Nike Running Shoes", 
+    name: "Adidas Running Shoes", 
     price: 80, 
     category: "clothing",
     storeId: fakeStoreId,
     location: { type: "Point", coordinates: [90.4125, 23.8103] }
   },
   { 
-    name: "Miniket Rice 5kg", 
+    name: "Miniket Rice 10kg", 
     price: 10, 
     category: "groceries",
     storeId: fakeStoreId,
     location: { type: "Point", coordinates: [90.4125, 23.8103] }
   },
   { 
-    name: "Paracetamol 500mg", 
+    name: "Savlon Cream 100g", 
     price: 1, 
     category: "pharmacy",
     storeId: fakeStoreId,

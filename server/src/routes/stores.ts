@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import type { Response } from 'express';
 import { z } from 'zod';
 import type { AuthedRequest } from '../middleware/auth.js';
@@ -18,8 +19,13 @@ const storeSchema = z.object({
 const productSchema = z.object({
   name: z.string().min(1),
   description: z.string().min(1),
-  price: z.number().min(0),
-  imageUrl: z.string() // expected to be base64 data url from frontend
+  price: z.coerce.number().min(0),
+  category: z.string().optional(),
+  imageUrl: z.string(), // expected to be base64 data url from frontend
+  location: z.object({
+    type: z.literal('Point'),
+    coordinates: z.tuple([z.number(), z.number()])
+  }).optional()
 });
 
 export async function createStoreRoute(req: AuthedRequest, res: Response) {
@@ -66,7 +72,11 @@ export async function getMyStoresRoute(req: AuthedRequest, res: Response) {
 
 export async function getStoreWithProductsRoute(req: AuthedRequest, res: Response) {
   try {
-    const store = await Store.findById(req.params.storeId);
+    const { storeId } = req.params;
+    if (!storeId) return res.status(400).json({ error: 'Missing storeId parameter' });
+    if (!mongoose.Types.ObjectId.isValid(storeId)) return res.status(400).json({ error: 'Invalid storeId format' });
+
+    const store = await Store.findById(storeId);
     if (!store) return res.status(404).json({ error: 'Store not found' });
     
     // Security check: If requested as seller, make sure it belongs to them
@@ -74,7 +84,7 @@ export async function getStoreWithProductsRoute(req: AuthedRequest, res: Respons
        return res.status(403).json({ error: 'Not your store' });
     }
 
-    const products = await Product.find({ storeId: { $in: [store.id, store._id] } });
+    const products = await Product.find({ storeId: store._id });
     return res.json({ store, products });
   } catch (error: any) {
     return res.status(500).json({ error: 'Server error', details: error.message });
@@ -90,17 +100,24 @@ export async function addProductToStoreRoute(req: AuthedRequest, res: Response) 
   if (!parsed.success) return res.status(400).json({ error: 'Invalid product data', details: parsed.error.flatten() });
 
   try {
-    const store = await Store.findById(req.params.storeId);
+    const { storeId } = req.params;
+    if (!storeId) return res.status(400).json({ error: 'Missing storeId parameter' });
+    if (!mongoose.Types.ObjectId.isValid(storeId)) return res.status(400).json({ error: 'Invalid storeId format' });
+
+    const store = await Store.findById(storeId);
     if (!store) return res.status(404).json({ error: 'Store not found' });
     if (store.sellerId !== req.user.id) return res.status(403).json({ error: 'Not your store' });
 
-    const product = new Product({
+    const saved = await Product.create({
       ...parsed.data,
-      storeId: store.id
+      storeId: store._id
     });
-    const saved = await product.save();
     return res.status(201).json(saved);
   } catch (error: any) {
-    return res.status(500).json({ error: 'Server error', details: error.message });
+    console.error('Add product error:', error);
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: 'Invalid product payload', details: error.message });
+    }
+    return res.status(500).json({ error: 'Server error', details: error?.message ?? 'Unknown error' });
   }
 }

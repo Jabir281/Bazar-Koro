@@ -10,6 +10,7 @@ export interface IUser {
   email: string;
   passwordHash: string;
   roles: UserRole[];
+  isOnline?: boolean;
 }
 
 const userSchema = new mongoose.Schema<IUser>(
@@ -22,7 +23,8 @@ const userSchema = new mongoose.Schema<IUser>(
       required: true, 
       enum: ['buyer', 'seller', 'driver', 'marketer', 'admin'],
       default: ['buyer']
-    }
+    },
+    isOnline: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

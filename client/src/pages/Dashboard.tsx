@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { LogOut, Plus, ShoppingBag, Store, TrendingUp, User, Shield } from "lucide-react";
+import { LogOut, Plus, ShoppingBag, Store, TrendingUp, User, Shield, Truck } from "lucide-react";
+import { SellerOMS } from '../components/SellerOMS'; // <-- Imported here!
 
 type UserRole = "buyer" | "seller" | "driver" | "marketer" | "admin";
 
@@ -20,6 +21,42 @@ interface UserStore {
   location: { city: string, road: string, address: string };
 }
 
+interface BuyerOrderLine {
+  productId: string;
+  name: string;
+  unitPrice: number;
+  qty: number;
+}
+
+interface BuyerOrder {
+  _id: string;
+  status: 'placed' | 'accepted' | 'rejected' | 'ready_for_pickup' | 'claimed' | 'at_store' | 'picked_up' | 'on_the_way' | 'delivered';
+  lines: BuyerOrderLine[];
+  createdAt: string;
+}
+
+interface DriverOrderLine {
+  productId: string;
+  name: string;
+  unitPrice: number;
+  qty: number;
+}
+
+interface DriverOrder {
+  _id: string;
+  status: 'placed' | 'accepted' | 'rejected' | 'ready_for_pickup' | 'claimed' | 'at_store' | 'picked_up' | 'on_the_way' | 'delivered';
+  lines: DriverOrderLine[];
+  createdAt: string;
+}
+
+interface DriverOverview {
+  isOnline: boolean;
+  dailyEarnings: number;
+  completedTrips: number;
+  activeDeliveries: DriverOrder[];
+  availableOrders: DriverOrder[];
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -28,10 +65,12 @@ export default function Dashboard() {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
 
   const [stores, setStores] = useState<UserStore[]>([]);
+  const [buyerOrders, setBuyerOrders] = useState<BuyerOrder[]>([]);
+  const [driverOverview, setDriverOverview] = useState<DriverOverview | null>(null);
 
   useEffect(() => {
     fetchUserData();
-  }, [selectedRole]); // Re-fetch when role changes
+  }, [selectedRole]);
 
   const fetchUserData = async () => {
     setLoading(true);
@@ -68,7 +107,6 @@ export default function Dashboard() {
       const resolvedRole = selectedRole || data.activeRole;
       if (!selectedRole) setSelectedRole(resolvedRole);
 
-      // Fetch stores if they are a seller
       if (resolvedRole === "seller") {
         const storeRes = await fetch("/api/stores", { headers: { "Authorization": `Bearer ${token}`, "x-active-role": "seller" } });
         if (storeRes.ok) {
@@ -77,10 +115,28 @@ export default function Dashboard() {
       }
 
       if (resolvedRole === "buyer") {
-        const storeRes = await fetch("/api/stores/all", { headers: { "Authorization": `Bearer ${token}`, "x-active-role": "buyer" } });
+        const [storeRes, orderRes] = await Promise.all([
+          fetch("/api/stores/all", { headers: { "Authorization": `Bearer ${token}`, "x-active-role": "buyer" } }),
+          fetch("/api/orders/me", { headers: { "Authorization": `Bearer ${token}`, "x-active-role": "buyer" } }),
+        ]);
+
         if (storeRes.ok) {
           setStores(await storeRes.json());
         }
+
+        if (orderRes.ok) {
+          const orderData = await orderRes.json();
+          setBuyerOrders(orderData.orders || []);
+        }
+      }
+
+      if (resolvedRole === "driver") {
+        const driverRes = await fetch("/api/driver/overview", { headers: { "Authorization": `Bearer ${token}`, "x-active-role": "driver" } });
+        if (driverRes.ok) {
+          setDriverOverview(await driverRes.json());
+        }
+      } else {
+        setDriverOverview(null);
       }
 
     } catch (err: any) {
@@ -101,13 +157,11 @@ export default function Dashboard() {
     if (!user) return;
     
     setLoading(true);
-    // If they already have this role, simply switch
     if (user.roles.includes(newRole)) {
       setSelectedRole(newRole);
       return;
     }
 
-    // Role missing, attach it automatically behind the scenes
     try {
       const token = localStorage.getItem("token");
       const res = await fetch("/api/me/roles", {
@@ -122,10 +176,10 @@ export default function Dashboard() {
       if (!res.ok) throw new Error("Failed to add role");
       
       const data = await res.json();
-      localStorage.setItem("token", data.token); // update local token with new claims
+      localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      setSelectedRole(newRole); // Trigger a refresh for the new context
+      setSelectedRole(newRole);
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
@@ -156,11 +210,11 @@ export default function Dashboard() {
     );
   }
 
-  // Determine Icon for active role
   const RoleIcon = () => {
     switch (user.activeRole) {
       case "buyer": return <ShoppingBag className="w-6 h-6" />;
       case "seller": return <Store className="w-6 h-6" />;
+      case "driver": return <Truck className="w-6 h-6" />;
       case "marketer": return <TrendingUp className="w-6 h-6" />;
       case "admin": return <Shield className="w-6 h-6" />;
       default: return <User className="w-6 h-6" />;
@@ -169,7 +223,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-surface text-main font-['Plus_Jakarta_Sans']">
-      {/* Top Navigation */}
       <nav className="p-6">
         <div className="neomorph-raised rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -183,7 +236,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-            {/* Role Switcher always visible */}
             <div className="relative w-full sm:w-auto">
               <select 
                 className="w-full sm:w-auto appearance-none bg-transparent neomorph-inset rounded-xl px-4 py-2.5 pr-8 font-semibold text-sm outline-none cursor-pointer text-main"
@@ -192,6 +244,7 @@ export default function Dashboard() {
               >
                 <option value="buyer">Buyer Mode</option>
                 <option value="seller">Seller Mode</option>
+                <option value="driver">Driver Mode</option>
                 <option value="marketer">Marketer Mode</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-primary">
@@ -210,12 +263,10 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* Main Content Area Based on Active Role */}
       <main className="px-6 pb-10 max-w-6xl mx-auto">
         {user.activeRole === "buyer" && (
           <div className="space-y-6">
             <h2 className="text-2xl font-extrabold tracking-tight mb-4">Discover Local Stores</h2>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {stores.length === 0 ? (
                 <div className="neomorph-inset rounded-3xl p-8 flex items-center justify-center min-h-[40vh] text-muted col-span-full">
@@ -239,6 +290,39 @@ export default function Dashboard() {
                 ))
               )}
             </div>
+
+            <div className="space-y-6">
+              <h2 className="text-2xl font-extrabold tracking-tight">Your Orders</h2>
+              {buyerOrders.length === 0 ? (
+                <div className="neomorph-inset rounded-3xl p-8 text-center text-muted">
+                  No orders have been placed yet. Your pending orders will appear here.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-6">
+                  {buyerOrders.map((order) => (
+                    <div key={order._id} className="neomorph-raised rounded-3xl p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                        <div>
+                          <p className="text-sm font-bold text-main">Order #{order._id.slice(-6).toUpperCase()}</p>
+                          <p className="text-xs text-muted">{new Date(order.createdAt).toLocaleString()}</p>
+                        </div>
+                        <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary">
+                          {order.status.replace(/_/g, ' ')}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {order.lines.map((line) => (
+                          <div key={line.productId} className="flex justify-between text-sm text-main">
+                            <span>{line.qty}x {line.name}</span>
+                            <span>৳{(line.unitPrice * line.qty).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -255,7 +339,6 @@ export default function Dashboard() {
               </button>
             </div>
             
-            {/* Store List Component implementation continues */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {stores.length === 0 ? (
                 <div className="neomorph-raised rounded-3xl p-6 flex flex-col items-center justify-center min-h-[12rem] text-center space-y-3 col-span-full">
@@ -280,6 +363,199 @@ export default function Dashboard() {
                   </Link>
                 ))
               )}
+            </div>
+
+            {/* --- SELLER OMS SECTION --- */}
+            {stores.length > 0 && (
+              <div className="mt-12 space-y-8">
+                <h2 className="text-2xl font-extrabold tracking-tight border-t border-primary/20 pt-8">Incoming Orders</h2>
+                {stores.map(store => (
+                  <div key={store.id} className="space-y-4">
+                    <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+                      <ShoppingBag className="w-5 h-5" /> 
+                      {store.name}
+                    </h3>
+                    <SellerOMS storeId={store.id} />
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* -------------------------- */}
+          </div>
+        )}
+
+        {user.activeRole === "driver" && driverOverview && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="neomorph-raised rounded-3xl p-6 flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-wider text-muted">Availability</p>
+                    <p className="text-2xl font-extrabold text-main">{driverOverview.isOnline ? 'Online' : 'Offline'}</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const token = localStorage.getItem('token');
+                      if (!token) return;
+                      const res = await fetch('/api/driver/status', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`,
+                          'x-active-role': 'driver',
+                        },
+                        body: JSON.stringify({ online: !driverOverview.isOnline }),
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        setDriverOverview((prev) => prev ? { ...prev, isOnline: data.isOnline } : prev);
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-xl font-semibold neomorph-raised active:neomorph-inset transition-all ${driverOverview.isOnline ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}
+                  >
+                    {driverOverview.isOnline ? 'Go Offline' : 'Go Online'}
+                  </button>
+                </div>
+                <p className="text-sm text-muted">Toggle your availability to accept deliveries when you are ready to work.</p>
+              </div>
+
+              <div className="neomorph-raised rounded-3xl p-6">
+                <p className="text-sm font-semibold uppercase tracking-wider text-muted">Daily Earnings</p>
+                <p className="text-3xl font-extrabold text-primary">৳{driverOverview.dailyEarnings.toFixed(2)}</p>
+              </div>
+
+              <div className="neomorph-raised rounded-3xl p-6">
+                <p className="text-sm font-semibold uppercase tracking-wider text-muted">Completed Trips</p>
+                <p className="text-3xl font-extrabold text-primary">{driverOverview.completedTrips}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="neomorph-raised rounded-3xl p-6">
+                <h2 className="text-xl font-bold mb-4">Active Deliveries</h2>
+                {driverOverview.activeDeliveries.length === 0 ? (
+                  <div className="text-sm text-muted">No active deliveries right now.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {driverOverview.activeDeliveries.map((order) => {
+                      const nextAction = order.status === 'claimed'
+                        ? { label: 'Arrived at Store', nextStatus: 'at_store' }
+                        : order.status === 'at_store'
+                        ? { label: 'Picked Up', nextStatus: 'picked_up' }
+                        : order.status === 'picked_up'
+                        ? { label: 'On the Way', nextStatus: 'on_the_way' }
+                        : order.status === 'on_the_way'
+                        ? { label: 'Mark Delivered', nextStatus: 'delivered' }
+                        : null;
+
+                      return (
+                        <div key={order._id} className="border border-primary/10 rounded-3xl p-4 neomorph-inset">
+                          <div className="flex items-center justify-between gap-3 mb-3">
+                            <div>
+                              <p className="font-semibold text-main">Order #{order._id.slice(-6).toUpperCase()}</p>
+                              <p className="text-xs text-muted">{order.status.replace(/_/g, ' ')}</p>
+                            </div>
+                            {nextAction && (
+                              <button
+                                onClick={async () => {
+                                  const token = localStorage.getItem('token');
+                                  if (!token) return;
+                                  const res = await fetch(`/api/orders/${order._id}/status`, {
+                                    method: 'PATCH',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${token}`,
+                                      'x-active-role': 'driver',
+                                    },
+                                    body: JSON.stringify({ status: nextAction.nextStatus }),
+                                  });
+                                  if (res.ok) {
+                                    const overviewRes = await fetch('/api/driver/overview', {
+                                      headers: {
+                                        'Authorization': `Bearer ${token}`,
+                                        'x-active-role': 'driver',
+                                      },
+                                    });
+                                    if (overviewRes.ok) setDriverOverview(await overviewRes.json());
+                                  }
+                                }}
+                                className="mt-2 w-full bg-primary text-white rounded-xl py-2 font-semibold neomorph-raised active:neomorph-inset transition-all"
+                              >
+                                {nextAction.label}
+                              </button>
+                            )}
+                          </div>
+                          <div className="space-y-2 text-sm text-main">
+                            {order.lines.map((line) => (
+                              <div key={line.productId} className="flex justify-between">
+                                <span>{line.qty}x {line.name}</span>
+                                <span>৳{(line.unitPrice * line.qty).toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="neomorph-raised rounded-3xl p-6">
+                <h2 className="text-xl font-bold mb-4">Pickup Queue</h2>
+                {!driverOverview.isOnline ? (
+                  <div className="text-sm text-muted">Go online to claim new deliveries.</div>
+                ) : driverOverview.availableOrders.length === 0 ? (
+                  <div className="text-sm text-muted">No nearby pickups currently available.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {driverOverview.availableOrders.map((order) => (
+                      <div key={order._id} className="border border-primary/10 rounded-3xl p-4 neomorph-inset">
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                          <div>
+                            <p className="font-semibold text-main">Order #{order._id.slice(-6).toUpperCase()}</p>
+                            <p className="text-xs text-muted">Ready for pickup</p>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              const token = localStorage.getItem('token');
+                              if (!token) return;
+                              const res = await fetch(`/api/orders/${order._id}/status`, {
+                                method: 'PATCH',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${token}`,
+                                  'x-active-role': 'driver',
+                                },
+                                body: JSON.stringify({ status: 'claimed' }),
+                              });
+                              if (res.ok) {
+                                const overviewRes = await fetch('/api/driver/overview', {
+                                  headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'x-active-role': 'driver',
+                                  },
+                                });
+                                if (overviewRes.ok) setDriverOverview(await overviewRes.json());
+                              }
+                            }}
+                            className="mt-2 bg-primary text-white rounded-xl py-2 px-3 font-semibold neomorph-raised active:neomorph-inset transition-all"
+                          >
+                            Claim
+                          </button>
+                        </div>
+                        <div className="space-y-2 text-sm text-main">
+                          {order.lines.map((line) => (
+                            <div key={line.productId} className="flex justify-between">
+                              <span>{line.qty}x {line.name}</span>
+                              <span>৳{(line.unitPrice * line.qty).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

@@ -19,6 +19,7 @@ export interface Product {
   price: number;
   category: string;
   storeId: string;
+  imageUrl: string;
   // GeoJSON format for MongoDB geospatial queries
   location?: {
     type: 'Point';
@@ -27,6 +28,7 @@ export interface Product {
   distance?: number; // Calculated field if user searches by distance
   createdAt?: string;
   updatedAt?: string;
+
 }
 
 // Defines the structure of the API response so the frontend knows what to expect
@@ -35,4 +37,10 @@ export interface SearchResponse {
   total: number;
   page: number;
   totalPages: number;
+}
+
+// shared/src/types/search.ts
+export interface SearchSuggestion {
+  _id: string;
+  name: string;
 }

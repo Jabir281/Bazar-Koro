@@ -1,56 +1,76 @@
 import express from "express";
 import Stripe from "stripe";
+import mongoose from "mongoose";
+import { requireAuth } from '../middleware/auth.js';
+import Order from '../models/Order.js';
+import { Cart } from '../models/Cart.js';
 
 const router = express.Router();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2026-03-25.dahlia", 
+  apiVersion: "2026-03-25.dahlia",
 });
 
-router.post("/create-checkout-session", async (req, res) => {
+router.post("/create-checkout-session", requireAuth, async (req, res) => {
   try {
-    const { items } = req.body;
+    if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+    if (req.user.activeRole !== 'buyer') {
+      return res.status(403).json({ error: 'Only buyers can checkout' });
+    }
 
-    // Calculate total amount
-    const totalAmount = items.reduce(
-      (sum: number, item: any) => sum + item.price * item.quantity,
+    const cart = await Cart.findOne({ buyerId: req.user.id });
+    if (!cart?.items?.length) {
+      return res.status(400).json({ error: 'Your cart is empty' });
+    }
+
+    const lineItems = cart.items.map((item) => ({
+      name: item.name,
+      price: item.unitPrice,
+      quantity: item.qty,
+      storeId: item.storeId,
+      productId: item.productId,
+    }));
+
+    const totalAmount = lineItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
       0
     );
 
-    // MODULE 1 PART 4 REQUIREMENT: Commission Logic
-    const commission = Math.round(totalAmount * 0.1); 
+    const commission = Math.round(totalAmount * 0.1);
     const sellerAmount = totalAmount - commission;
 
-    console.log("💰 Payment Breakdown:");
-    console.log({ totalAmount, commission, sellerAmount });
+    console.log("💰 Payment Breakdown:", { totalAmount, commission, sellerAmount });
 
-    // Create Stripe session
+    const order = await Order.create({
+      buyerId: new mongoose.Types.ObjectId(req.user.id),
+      lines: cart.items,
+      status: 'placed',
+    });
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      line_items: items.map((item: any) => ({
+      line_items: lineItems.map((item) => ({
         price_data: {
           currency: "usd",
           product_data: {
             name: item.name,
           },
-          unit_amount: item.price * 100, // Stripe expects cents
+          unit_amount: item.price * 100,
         },
         quantity: item.quantity,
       })),
       mode: "payment",
-      
-      // MODULE 1 PART 4 REQUIREMENT: Generate Digital Receipt
       invoice_creation: {
         enabled: true,
       },
-
-
-
       success_url: "http://localhost:5173/success",
       cancel_url: "http://localhost:5173/cancel",
     });
 
-    res.json({ url: session.url });
+    cart.items = [];
+    await cart.save();
+
+    res.json({ url: session.url, orderId: order._id });
 
   } catch (error) {
     console.error("Stripe Error:", error);

@@ -103,6 +103,7 @@ export default function Signup() {
                  >
                      <option value="buyer">Buyer</option>
                      <option value="seller">Seller</option>
+                     <option value="driver">Driver</option>
                      <option value="marketer">Marketer</option>
                  </select>
              </div>
