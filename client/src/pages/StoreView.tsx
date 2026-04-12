@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Plus, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Plus, Image as ImageIcon, Store, Star } from "lucide-react";
 
 interface Product {
   id: string;
@@ -23,6 +23,8 @@ export default function StoreView() {
 
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [avgRating, setAvgRating] = useState<number>(0);
   const [showAddProduct, setShowAddProduct] = useState(false);
 
   // Form State
@@ -56,6 +58,8 @@ export default function StoreView() {
       const data = await res.json();
       setStore(data.store);
       setProducts(data.products);
+      setReviews(data.reviews || []);
+      setAvgRating(data.avgRating || 0);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -192,8 +196,19 @@ export default function StoreView() {
                 <ArrowLeft className="w-5 h-5" />
              </button>
              <div>
-                <h1 className="text-3xl font-extrabold tracking-tight">{store.name}</h1>
-                <p className="text-muted font-medium text-sm">Owner: {store.ownerName} • {store.location.city}</p>
+                <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-2">
+                   {store.name}
+                   {reviews.length > 0 && (
+                        <span className="flex items-center gap-1 text-orange-500 font-bold bg-orange-500/10 px-2 py-0.5 rounded-lg text-xs tracking-normal ml-2">
+                           <Star className="w-4 h-4 fill-current mb-0.5" />
+                         {avgRating.toFixed(1)} ({reviews.length} reviews)
+                      </span>
+                   )}
+                </h1>
+                <p className="text-muted font-medium text-sm flex items-center gap-1 mt-1">
+                   <Store className="w-4 h-4 text-slate-400" />
+                   Owner: {store.ownerName} • {store.location.city}
+                </p>
                 {store.description && <p className="text-sm mt-1 text-main">{store.description}</p>}
                 {store.operatingHours && <p className="text-xs mt-1 text-primary font-semibold uppercase tracking-wide">Hours: {store.operatingHours}</p>}
              </div>
@@ -314,6 +329,30 @@ export default function StoreView() {
                     </div>
                  </div>
               ))}
+           </div>
+        )}
+
+        {/* Reviews Section */}
+        {reviews.length > 0 && (
+           <div className="mt-12 pt-8 border-t border-slate-300">
+              <h2 className="text-2xl font-bold mb-6 tracking-tight flex items-center gap-2">
+                 <Star className="text-primary w-6 h-6 fill-current" /> Store Reviews
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                 {reviews.map((r: any) => (
+                    <div key={r._id} className="p-5 rounded-2xl bg-surface neomorph-inset flex flex-col gap-3">
+                       <div className="flex items-start justify-between">
+                          <span className="font-extrabold text-main truncate mr-2">{r.buyerId?.name || "Verified Buyer"}</span>
+                          <div className="flex gap-0.5 flex-shrink-0">
+                             {Array.from({ length: 5 }).map((_, i) => (
+                                <Star key={i} className={`w-4 h-4 ${i < r.rating ? 'fill-orange-500 text-orange-500' : 'text-slate-300'}`} />
+                             ))}
+                          </div>
+                       </div>
+                       <p className="text-muted text-sm leading-relaxed italic blockquote">"{r.comment}"</p>
+                    </div>
+                 ))}
+              </div>
            </div>
         )}
 

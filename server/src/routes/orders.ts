@@ -3,6 +3,7 @@ import { z } from 'zod';
 import mongoose from 'mongoose';
 import type { AuthedRequest } from '../middleware/auth.js';
 import Order from '../models/Order.js'; // Using the real MongoDB model now!
+import Review from '../models/Review.js';
 import { User } from '../models/User.js';
 
 // --- TEAMMATE's ZOD SCHEMAS (Kept exactly as they wrote them) ---
@@ -40,8 +41,19 @@ export const listMyOrdersRoute = async (req: AuthedRequest, res: Response) => {
       return res.status(403).json({ error: 'Only buyers can list their orders' });
     }
     
-    const orders = await Order.find({ buyerId: req.user.id }).sort({ createdAt: -1 });
-    return res.json({ orders });
+    // Using lean() to allow modification of the order objects
+    const orders = await Order.find({ buyerId: req.user.id }).sort({ createdAt: -1 }).lean();
+    
+    // Add review data if any
+    const orderIds = orders.map((o: any) => o._id);
+    const orderReviews = await Review.find({ orderId: { $in: orderIds } }).lean();
+    
+    const ordersWithReviews = orders.map((o: any) => {
+       const existingReview = orderReviews.find((r: any) => r.orderId.toString() === o._id.toString());
+       return { ...o, review: existingReview || null };
+    });
+
+    return res.json({ orders: ordersWithReviews });
   } catch (err) {
     return res.status(500).json({ error: 'Database error fetching orders' });
   }

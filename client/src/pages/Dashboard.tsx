@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { LogOut, Plus, ShoppingBag, Store, TrendingUp, User, Shield, Truck } from "lucide-react";
+import { LogOut, Plus, ShoppingBag, Store, TrendingUp, User, Shield, Truck, Star } from "lucide-react";
 import { SellerOMS } from '../components/SellerOMS'; // <-- Imported here!
 
 type UserRole = "buyer" | "seller" | "driver" | "marketer" | "admin";
@@ -15,16 +15,20 @@ interface UserProfile {
 
 interface UserStore {
   id: string;
+  _id?: string;
   name: string;
   ownerName: string;
   type: string;
   location: { city: string, road: string, address: string };
   status?: string;
   isActive?: boolean;
+  avgRating?: number;
+  reviewCount?: number;
 }
 
 interface BuyerOrderLine {
   productId: string;
+  storeId: string;
   name: string;
   unitPrice: number;
   qty: number;
@@ -35,6 +39,7 @@ interface BuyerOrder {
   status: 'placed' | 'accepted' | 'rejected' | 'ready_for_pickup' | 'claimed' | 'at_store' | 'picked_up' | 'on_the_way' | 'delivered';
   lines: BuyerOrderLine[];
   createdAt: string;
+  review?: { rating: number, comment: string } | null;
 }
 
 interface DriverOrderLine {
@@ -68,6 +73,10 @@ export default function Dashboard() {
 
   const [stores, setStores] = useState<UserStore[]>([]);
   const [buyerOrders, setBuyerOrders] = useState<BuyerOrder[]>([]);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedOrderForReview, setSelectedOrderForReview] = useState<{ orderId: string, storeId: string, productId?: string, title: string } | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
   const [driverOverview, setDriverOverview] = useState<DriverOverview | null>(null);
 
   useEffect(() => {
@@ -152,6 +161,45 @@ export default function Dashboard() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/");
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrderForReview) return;
+    
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "x-active-role": "buyer"
+        },
+        body: JSON.stringify({
+          orderId: selectedOrderForReview.orderId,
+          storeId: selectedOrderForReview.storeId,
+          productId: selectedOrderForReview.productId || undefined,
+          rating: reviewRating,
+          comment: reviewComment
+        })
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to submit review");
+      }
+      
+      setBuyerOrders(prev => prev.map(o => o._id === selectedOrderForReview.orderId ? { ...o, review: { rating: reviewRating, comment: reviewComment } } : o));
+
+      alert("Review submitted successfully!");
+      setReviewModalOpen(false);
+      setSelectedOrderForReview(null);
+      setReviewRating(5);
+      setReviewComment("");
+    } catch (err: any) {
+      alert(err.message);
+    }
   };
 
   const handleRoleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -282,8 +330,16 @@ export default function Dashboard() {
                           <Store className="w-5 h-5" />
                        </div>
                        <div>
-                         <h3 className="font-bold text-xl leading-tight text-main">{s.name}</h3>
-                         <span className="text-[0.65rem] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">{s.type.replace('_', ' ')}</span>
+                         <h3 className="font-bold text-xl leading-tight text-main line-clamp-1">{s.name}</h3>
+                         <div className="flex items-center gap-2 mt-1">
+                           <span className="text-[0.65rem] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">{s.type.replace('_', ' ')}</span>
+                           {s.avgRating ? (
+                             <span className="text-[0.65rem] font-bold text-orange-500 uppercase tracking-widest bg-orange-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                               <Star className="w-3 h-3 fill-current" />
+                               {s.avgRating.toFixed(1)}
+                             </span>
+                           ) : null}
+                         </div>
                        </div>
                     </div>
                     <p className="text-sm font-medium text-muted mt-auto">By {s.ownerName}</p>
@@ -308,8 +364,29 @@ export default function Dashboard() {
                           <p className="text-sm font-bold text-main">Order #{order._id.slice(-6).toUpperCase()}</p>
                           <p className="text-xs text-muted">{new Date(order.createdAt).toLocaleString()}</p>
                         </div>
-                        <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary">
-                          {order.status.replace(/_/g, ' ')}
+                        <div className="inline-flex flex-col items-end gap-2">
+                          <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary">
+                            {order.status.replace(/_/g, ' ')}
+                          </div>
+                          {order.status === 'delivered' && (
+                              !order.review ? (
+                              <button
+                                onClick={() => {
+                                   setSelectedOrderForReview({ orderId: order._id, storeId: order.lines?.[0]?.storeId || '', title: "Review Store & Products" });
+                                   setReviewModalOpen(true);
+                                }}
+                                  className="text-xs bg-orange-500/10 text-orange-500 px-3 py-1 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 active:scale-95 transition-transform hover:bg-orange-500/20"
+                                >
+                                  <Star className="w-3 h-3 fill-current" /> Leave Review
+                                </button>
+                                ) : (
+                                  <div className="text-xs bg-orange-500 text-white px-3 py-1 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-orange-500/20">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                      <Star key={i} className={`w-3 h-3 ${i < order.review!.rating ? 'fill-current text-white' : 'text-orange-200'}`} />
+                                  ))}
+                                </div>
+                              )
+                          )}
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -583,6 +660,57 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {/* Review Modal */}
+      {reviewModalOpen && selectedOrderForReview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-surface rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
+            <h2 className="text-xl font-bold mb-4">{selectedOrderForReview.title}</h2>
+            <form onSubmit={handleReviewSubmit} className="space-y-4">
+               <div>
+                  <label className="block text-sm font-semibold text-muted mb-2">Rating</label>
+                  <div className="flex gap-2">
+                     {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewRating(star)}
+                            className={`p-2 rounded-full transition-transform active:scale-90 ${reviewRating >= star ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-400'}`}
+                        >
+                           <Star className="w-6 h-6 fill-current" />
+                        </button>
+                     ))}
+                  </div>
+               </div>
+               <div>
+                  <label className="block text-sm font-semibold text-muted mb-2">Comment</label>
+                  <textarea
+                     required
+                     value={reviewComment}
+                     onChange={(e) => setReviewComment(e.target.value)}
+                     className="w-full neomorph-inset bg-transparent rounded-xl p-4 outline-none resize-none h-24"
+                     placeholder="Tell everyone about your experience..."
+                  ></textarea>
+               </div>
+               <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setReviewModalOpen(false); setSelectedOrderForReview(null); }}
+                    className="flex-1 py-3 font-semibold rounded-xl bg-slate-200 text-slate-700 active:scale-95 transition-transform"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3 font-semibold rounded-xl neomorph-raised text-primary active:neomorph-inset transition-transform"
+                  >
+                    Submit
+                  </button>
+               </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

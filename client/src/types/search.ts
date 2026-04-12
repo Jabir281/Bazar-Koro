@@ -18,6 +18,7 @@ export interface Product {
   price: number;
   category: string;
   storeId: string;
+  imageUrl?: string;
   location?: {
     type: 'Point';
     coordinates: [number, number];
@@ -25,6 +26,12 @@ export interface Product {
   distance?: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface SearchSuggestion {
+    _id: string;
+    name: string;
+    type: string;
 }
 
 export interface SearchResponse {

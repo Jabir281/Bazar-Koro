@@ -1,7 +1,7 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import Stripe from "stripe";
 import mongoose from "mongoose";
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, AuthedRequest } from '../middleware/auth.js';
 import Order from '../models/Order.js';
 import { Cart } from '../models/Cart.js';
 
@@ -11,14 +11,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: "2026-03-25.dahlia",
 });
 
-router.post("/create-checkout-session", requireAuth, async (req, res) => {
+router.post("/create-checkout-session", requireAuth, async (req: Request, res: Response) => {
+  const authedReq = req as AuthedRequest;
   try {
-    if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
-    if (req.user.activeRole !== 'buyer') {
+    if (!authedReq.user) return res.status(401).json({ error: 'Not authenticated' });
+    if (authedReq.user.activeRole !== 'buyer') {
       return res.status(403).json({ error: 'Only buyers can checkout' });
     }
 
-    const cart = await Cart.findOne({ buyerId: req.user.id });
+    const cart = await Cart.findOne({ buyerId: authedReq.user.id });
     if (!cart?.items?.length) {
       return res.status(400).json({ error: 'Your cart is empty' });
     }
@@ -42,7 +43,7 @@ router.post("/create-checkout-session", requireAuth, async (req, res) => {
     console.log("💰 Payment Breakdown:", { totalAmount, commission, sellerAmount });
 
     const order = await Order.create({
-      buyerId: new mongoose.Types.ObjectId(req.user.id),
+      buyerId: new mongoose.Types.ObjectId(authedReq.user.id),
       lines: cart.items,
       status: 'placed',
     });

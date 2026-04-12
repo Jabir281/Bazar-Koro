@@ -18,8 +18,9 @@ import {
 } from './routes/orders.js';
 import { driverOverviewRoute, setDriverStatusRoute } from './routes/driver.js';
 import { getAdminStoresRoute, getAdminStoreRoute, updateStoreStatusRoute, updateStoreActiveRoute, deleteStoreRoute, createAdminRoute } from './routes/admin.js';
+import { addReviewRoute, getStoreReviewsRoute, getProductReviewsRoute } from './routes/reviews.js';
 
-// ✅ NEW: Import your payment router
+// Order payments
 import paymentRoutes from './routes/payment.js'
 
 export function createApp() {
@@ -49,6 +50,12 @@ export function createApp() {
   app.patch('/api/orders/:id/status', requireAuth, updateOrderStatusRoute);
 
   app.get('/api/orders/store/:storeId', requireAuth, listStoreOrdersRoute);
+
+  // Reviews
+  app.post('/api/reviews', requireAuth, addReviewRoute as express.RequestHandler);
+  app.get('/api/stores/:storeId/reviews', getStoreReviewsRoute as express.RequestHandler);
+  app.get('/api/products/:productId/reviews', getProductReviewsRoute as express.RequestHandler);
+
   // Cart
   app.post('/api/cart/add', requireAuth, addToCartRoute as express.RequestHandler)
   app.post('/api/cart/update-qty', requireAuth, updateCartItemQtyRoute as express.RequestHandler)

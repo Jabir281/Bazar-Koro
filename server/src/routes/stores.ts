@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { AuthedRequest } from '../middleware/auth.js';
 import { Store } from '../models/Store.js';
 import Product from '../models/Product.js';
+import Review from '../models/Review.js';
 
 const storeSchema = z.object({
   name: z.string().min(1),
@@ -56,8 +57,19 @@ export async function createStoreRoute(req: AuthedRequest, res: Response) {
 export async function getAllStoresRoute(req: AuthedRequest, res: Response) {
   try {
     // Only return approved and active stores for general browse/buyers.
-    const stores = await Store.find({ status: { $in: ['approved', undefined] }, isActive: { $in: [true, undefined] } });
-    return res.json(stores);
+      // Using $nin / $ne ensures older records missing these fields are still shown.
+      const stores = await Store.find({ status: { $nin: ['pending', 'rejected'] }, isActive: { $ne: false } }).lean();
+      
+      const storeIds = stores.map((s: any) => s._id);
+      const reviews = await Review.find({ storeId: { $in: storeIds } }).lean();
+      
+      const storesWithRating = stores.map((s: any) => {
+        const storeReviews = reviews.filter((r: any) => r.storeId.toString() === s._id.toString());
+        const avgRating = storeReviews.length ? storeReviews.reduce((acc: number, r: any) => acc + r.rating, 0) / storeReviews.length : 0;
+        return { ...s, id: s._id, avgRating, reviewCount: storeReviews.length };
+      });
+
+    return res.json(storesWithRating);
   } catch (error: any) {
     return res.status(500).json({ error: 'Server error', details: error.message });
   }
@@ -90,8 +102,16 @@ export async function getStoreWithProductsRoute(req: AuthedRequest, res: Respons
        return res.status(403).json({ error: 'Not your store' });
     }
 
-    const products = await Product.find({ storeId: store._id });
-    return res.json({ store, products });
+    const [products, reviews] = await Promise.all([
+      Product.find({ storeId: store._id }),
+      Review.find({ storeId: store._id }).populate('buyerId', 'name').sort({ createdAt: -1 })
+    ]);
+
+    const avgRating = reviews.length > 0
+      ? reviews.reduce((acc, r: any) => acc + r.rating, 0) / reviews.length
+      : 0;
+
+    return res.json({ store, products, reviews, avgRating });
   } catch (error: any) {
     return res.status(500).json({ error: 'Server error', details: error.message });
   }
