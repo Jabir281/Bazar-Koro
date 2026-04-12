@@ -5,7 +5,7 @@ export interface IProduct {
   description: string
   price: number
   category?: string
-  storeId: string | mongoose.Types.ObjectId
+  storeId: mongoose.Types.ObjectId
   imageUrl: string
   location?: {
     type: 'Point'
@@ -19,16 +19,16 @@ const productSchema = new mongoose.Schema<IProduct>(
     description: { type: String, required: true },
     price: { type: Number, required: true },
     category: { type: String, default: 'general' },
-    storeId: { type: mongoose.Schema.Types.Mixed, required: true, index: true },
+    storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', required: true, index: true },
     imageUrl: { type: String, required: true },
     location: {
       type: {
         type: String,
         enum: ['Point'],
-        default: 'Point',
       },
       coordinates: {
         type: [Number],
+        required: false,
       },
     },
   },

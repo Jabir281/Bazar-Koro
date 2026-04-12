@@ -126,6 +126,7 @@ export default function Cart() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          "x-active-role": "buyer",
         },
         body: JSON.stringify({
           items: summary.items.map((item) => ({

@@ -1,87 +1,98 @@
-import { Request, Response } from 'express'
-import Product from '../models/Product.js' // Adjust path if your model is elsewhere
-import { SearchFilters, SearchResponse } from '@bazar-koro/shared'
+// server/src/routes/search.ts
+import { Request, Response } from 'express';
+import Product from '../models/Product.js';
 
-export const searchRoute = async (req: Request<{}, {}, {}, SearchFilters>, res: Response) => {
+export const searchRoute = async (req: Request, res: Response) => {
   try {
-    const { 
-      keyword, 
-      category, 
-      minPrice, 
-      maxPrice, 
-      lat, 
-      lng, 
-      radius = 10, 
-      page = 1, 
-      limit = 20 
-    } = req.query;
+    const { keyword, category, minPrice, maxPrice, lat, lng, radius, page = '1', limit = '10' } = req.query;
 
-    const pageNum = Number(page);
-    const limitNum = Number(limit);
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = parseInt(limit as string, 10);
     const skip = (pageNum - 1) * limitNum;
 
-    const query: any = {};
+    const pipeline: any[] = [];
 
-    // Keyword Search
-    if (keyword) {
-      query.name = { $regex: keyword, $options: 'i' };
-    }
-
-    // Category Filter (case‑insensitive exact match)
-    if (category) {
-      query.category = { $regex: `^${category}$`, $options: 'i' };
-    }
-
-    // Price Range Filter
-    if (minPrice !== undefined || maxPrice !== undefined) {
-      query.price = {};
-      if (minPrice !== undefined) query.price.$gte = Number(minPrice);
-      if (maxPrice !== undefined) query.price.$lte = Number(maxPrice);
-    }
-
-    // Distance/Location Filter (Geospatial)
-    if (lat !== undefined && lng !== undefined) {
-      query.location = {
-        $near: {
-          $geometry: {
+    // 1. GEO-LOCATION MUST BE THE FIRST STAGE IN MONGODB
+    if (lat && lng) {
+      const radiusInMeters = radius ? parseInt(radius as string, 10) * 1000 : 10000; // Default to 10km
+      pipeline.push({
+        $geoNear: {
+          near: {
             type: 'Point',
-            coordinates: [Number(lng), Number(lat)],
+            // Crucial: MongoDB expects coordinates in [Longitude, Latitude] order
+            coordinates: [parseFloat(lng as string), parseFloat(lat as string)] 
           },
-          $maxDistance: Number(radius) * 1000, // Convert km to meters
-        },
-      };
+          distanceField: 'distance',
+          maxDistance: radiusInMeters,
+          spherical: true
+        }
+      });
     }
 
-    // Execute Database Queries
-    const [products, total] = await Promise.all([
-      Product.find(query)
-        .skip(skip)
-        .limit(limitNum)
-        .lean(), // Use lean for better performance on read-only search
-      Product.countDocuments(query),
-    ]);
+    // 2. Build the secondary filters ($match)
+    const matchStage: any = {};
 
-    const response: SearchResponse = {
-      products: products.map((p: any) => ({
-        _id: p._id.toString(),
-        name: p.name,
-        description: p.description,
-        price: p.price,
-        category: p.category,
-        storeId: p.storeId.toString(),
-        location: p.location,
-        distance: p.distance, // Will be populated if using aggregation later
-        createdAt: p.createdAt?.toString(),
-        updatedAt: p.updatedAt?.toString(),
-      })),
+    if (keyword) {
+      matchStage.name = { $regex: keyword as string, $options: 'i' };
+    }
+    if (category) {
+      matchStage.category = category;
+    }
+    if (minPrice || maxPrice) {
+      matchStage.price = {};
+      if (minPrice) matchStage.price.$gte = parseFloat(minPrice as string);
+      if (maxPrice) matchStage.price.$lte = parseFloat(maxPrice as string);
+    }
+
+    // Only push the $match stage if there are actual filters applied
+    if (Object.keys(matchStage).length > 0) {
+      pipeline.push({ $match: matchStage });
+    }
+
+    // 3. Calculate Total Documents (for Pagination) before applying skip/limit
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countResult = await Product.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    // 4. Apply Pagination ($skip and $limit)
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limitNum });
+
+    // 5. Execute the final query
+    const products = await Product.aggregate(pipeline);
+
+    res.status(200).json({
+      products,
       total,
       page: pageNum,
-      totalPages: Math.ceil(total / limitNum),
-    };
+      totalPages: Math.ceil(total / limitNum)
+    });
 
-    res.status(200).json(response);
   } catch (error) {
     console.error('Search Engine Error:', error);
     res.status(500).json({ message: 'Internal server error during search' });
+  }
+};
+
+
+export const suggestRoute = async (req: Request, res: Response) => {
+  try {
+    const { keyword } = req.query;
+    
+    // If input is empty, return an empty array immediately
+    if (!keyword || typeof keyword !== 'string') {
+       return res.status(200).json([]);
+    }
+
+    // Only search by name, limit to 3, and only return _id and name to save bandwidth
+    const suggestions = await Product.find({ name: { $regex: keyword, $options: 'i' } })
+      .select('name _id')
+      .limit(3)
+      .lean();
+
+    res.status(200).json(suggestions);
+  } catch (error) {
+    console.error('Suggestion Error:', error);
+    res.status(500).json({ message: 'Internal server error during suggestions' });
   }
 };

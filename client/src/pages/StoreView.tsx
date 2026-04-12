@@ -7,7 +7,12 @@ interface Product {
   name: string;
   description: string;
   price: number;
+  category?: string;
   imageUrl: string;
+  location?: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
 }
 
 export default function StoreView() {
@@ -24,6 +29,9 @@ export default function StoreView() {
   const [pName, setPName] = useState("");
   const [pDesc, setPDesc] = useState("");
   const [pPrice, setPPrice] = useState("");
+  const [pCategory, setPCategory] = useState("general");
+  const [pLat, setPLat] = useState("");
+  const [pLng, setPLng] = useState("");
   const [pImageBase64, setPImageBase64] = useState("");
   const [pLoading, setPLoading] = useState(false);
 
@@ -75,6 +83,16 @@ export default function StoreView() {
     
     try {
       const token = localStorage.getItem("token");
+      const price = Number(pPrice);
+      if (Number.isNaN(price)) throw new Error('Enter a valid product price');
+      if (!pImageBase64) throw new Error('Product image is required');
+      if ((pLat && !pLng) || (!pLat && pLng)) throw new Error('Please enter both latitude and longitude or leave both blank');
+
+      const location = pLat && pLng ? {
+        type: 'Point',
+        coordinates: [Number(pLng), Number(pLat)] as [number, number]
+      } : undefined;
+
       const res = await fetch(`/api/stores/${storeId}/products`, {
          method: "POST",
          headers: {
@@ -83,22 +101,30 @@ export default function StoreView() {
             "x-active-role": "seller"
          },
          body: JSON.stringify({
-            name: pName,
-            description: pDesc,
-            price: Number(pPrice),
-            imageUrl: pImageBase64
+            name: pName.trim(),
+            description: pDesc.trim(),
+            price,
+            category: pCategory.trim() || 'general',
+            imageUrl: pImageBase64,
+            ...(location ? { location } : {})
          })
       });
 
-      if (!res.ok) throw new Error("Failed to add product");
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        throw new Error(errBody?.error || errBody?.message || "Failed to add product");
+      }
       
       const newProduct = await res.json();
-      setProducts([...products, newProduct]);
+      setProducts(prev => [...prev, { ...newProduct, id: newProduct.id ?? newProduct._id }] as Product[]);
       
       // Reset
       setPName("");
       setPDesc("");
       setPPrice("");
+      setPCategory("general");
+      setPLat("");
+      setPLng("");
       setPImageBase64("");
       setShowAddProduct(false);
 
@@ -163,6 +189,28 @@ export default function StoreView() {
                       <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-1 pl-1">Price (Taka/USD)</label>
                       <div className="neomorph-inset rounded-xl p-1">
                         <input type="number" step="0.01" min="0" required value={pPrice} onChange={e=>setPPrice(e.target.value)} className="w-full bg-transparent px-4 py-2 outline-none text-sm font-medium" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-1 pl-1">Category</label>
+                      <div className="neomorph-inset rounded-xl p-1">
+                        <input type="text" value={pCategory} onChange={e=>setPCategory(e.target.value)} placeholder="general" className="w-full bg-transparent px-4 py-2 outline-none text-sm font-medium" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-1 pl-1">Latitude</label>
+                        <div className="neomorph-inset rounded-xl p-1">
+                          <input type="number" step="0.000001" value={pLat} onChange={e=>setPLat(e.target.value)} placeholder="23.7806" className="w-full bg-transparent px-4 py-2 outline-none text-sm font-medium" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-1 pl-1">Longitude</label>
+                        <div className="neomorph-inset rounded-xl p-1">
+                          <input type="number" step="0.000001" value={pLng} onChange={e=>setPLng(e.target.value)} placeholder="90.2794" className="w-full bg-transparent px-4 py-2 outline-none text-sm font-medium" />
+                        </div>
                       </div>
                     </div>
 
