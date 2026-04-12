@@ -6,7 +6,7 @@ import { addRoleRoute, loginRoute, meRoute, registerRoute } from './routes/auth.
 import { searchRoute, suggestRoute } from './routes/search.js'
 import { getProductRoute } from './routes/products.js'
 import { requireAuth } from './middleware/auth.js'
-import { addProductToStoreRoute, createStoreRoute, getMyStoresRoute, getStoreWithProductsRoute, getAllStoresRoute } from './routes/stores.js'
+import { addProductToStoreRoute, createStoreRoute, getMyStoresRoute, getStoreWithProductsRoute, getAllStoresRoute, uploadStoreDocumentRoute } from './routes/stores.js'
 import { addToCartRoute, getCartSummaryRoute, removeCartItemRoute, updateCartItemQtyRoute } from './routes/cart.js'
 import { 
   createOrderRoute, 
@@ -16,6 +16,7 @@ import {
   updateOrderStatusRoute 
 } from './routes/orders.js';
 import { driverOverviewRoute, setDriverStatusRoute } from './routes/driver.js';
+import { getAdminStoresRoute, getAdminStoreRoute, updateStoreStatusRoute, updateStoreActiveRoute, deleteStoreRoute, createAdminRoute } from './routes/admin.js';
 
 // ✅ NEW: Import your payment router
 import paymentRoutes from './routes/payment.js'
@@ -67,6 +68,15 @@ export function createApp() {
   app.get('/api/stores', requireAuth, getMyStoresRoute as express.RequestHandler)
   app.get('/api/stores/:storeId', requireAuth, getStoreWithProductsRoute as express.RequestHandler)
   app.post('/api/stores/:storeId/products', requireAuth, addProductToStoreRoute as express.RequestHandler)
+  app.post('/api/stores/:storeId/documents', requireAuth, uploadStoreDocumentRoute as express.RequestHandler)
+
+  // Admin Routes
+  app.get('/api/admin/stores', requireAuth, getAdminStoresRoute as express.RequestHandler)
+  app.get('/api/admin/stores/:id', requireAuth, getAdminStoreRoute as express.RequestHandler)
+  app.patch('/api/admin/stores/:id/status', requireAuth, updateStoreStatusRoute as express.RequestHandler)
+  app.patch('/api/admin/stores/:id/active', requireAuth, updateStoreActiveRoute as express.RequestHandler)
+  app.delete('/api/admin/stores/:id', requireAuth, deleteStoreRoute as express.RequestHandler)
+  app.post('/api/admin/admins', requireAuth, createAdminRoute as express.RequestHandler)
 
   return app
 }

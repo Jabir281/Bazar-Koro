@@ -8,6 +8,8 @@ import Product from '../models/Product.js';
 const storeSchema = z.object({
   name: z.string().min(1),
   ownerName: z.string().min(1),
+  description: z.string().optional(),
+  operatingHours: z.string().optional(),
   location: z.object({
     city: z.string().min(1),
     road: z.string().min(1),
@@ -39,7 +41,10 @@ export async function createStoreRoute(req: AuthedRequest, res: Response) {
   try {
     const store = new Store({
       ...parsed.data,
-      sellerId: req.user.id
+      sellerId: req.user.id,
+      status: 'pending', // NEW rule: new stores are pending
+      isActive: true,
+      documents: []
     });
     const saved = await store.save();
     return res.status(201).json(saved);
@@ -50,7 +55,8 @@ export async function createStoreRoute(req: AuthedRequest, res: Response) {
 
 export async function getAllStoresRoute(req: AuthedRequest, res: Response) {
   try {
-    const stores = await Store.find();
+    // Only return approved and active stores for general browse/buyers.
+    const stores = await Store.find({ status: { $in: ['approved', undefined] }, isActive: { $in: [true, undefined] } });
     return res.json(stores);
   } catch (error: any) {
     return res.status(500).json({ error: 'Server error', details: error.message });
@@ -86,6 +92,25 @@ export async function getStoreWithProductsRoute(req: AuthedRequest, res: Respons
 
     const products = await Product.find({ storeId: store._id });
     return res.json({ store, products });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Server error', details: error.message });
+  }
+}
+
+export async function uploadStoreDocumentRoute(req: AuthedRequest, res: Response) {
+  if (!req.user || req.user.activeRole !== 'seller') return res.status(403).json({ error: 'Only sellers can upload documents' });
+
+  const schema = z.object({ documentUrl: z.string().min(1) });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid document' });
+
+  try {
+    const store = await Store.findOne({ _id: req.params.storeId, sellerId: req.user.id });
+    if (!store) return res.status(404).json({ error: 'Store not found' });
+
+    store.documents.push(parsed.data.documentUrl);
+    await store.save();
+    return res.json(store);
   } catch (error: any) {
     return res.status(500).json({ error: 'Server error', details: error.message });
   }

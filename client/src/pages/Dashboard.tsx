@@ -19,6 +19,8 @@ interface UserStore {
   ownerName: string;
   type: string;
   location: { city: string, road: string, address: string };
+  status?: string;
+  isActive?: boolean;
 }
 
 interface BuyerOrderLine {
@@ -348,19 +350,31 @@ export default function Dashboard() {
                 </div>
               ) : (
                 stores.map((s) => (
-                  <Link to={`/seller/stores/${s.id}`} key={s.id} className="neomorph-raised hover:neomorph-inset active:neomorph-inset rounded-3xl p-6 flex flex-col justify-center min-h-[12rem] space-y-2 transition-all group">
+                  <div key={s.id} className="neomorph-raised rounded-3xl p-6 flex flex-col justify-center min-h-[12rem] space-y-2 group">
                     <div className="flex items-center gap-3 mb-2">
                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                           <Store className="w-5 h-5" />
                        </div>
                        <div>
-                         <h3 className="font-bold text-xl leading-tight text-main">{s.name}</h3>
-                         <span className="text-[0.65rem] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">{s.type.replace('_', ' ')}</span>
+                         <h3 className="font-bold text-xl leading-tight text-main line-clamp-1">{s.name}</h3>
+                         <div className="flex flex-wrap gap-2 items-center mt-1">
+                           <span className="text-[0.65rem] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">{s.type.replace('_', ' ')}</span>
+                           {s.status === 'pending' && <span className="text-[0.65rem] font-bold text-amber-500 uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded-full">Pending...</span>}
+                           {s.status === 'rejected' && <span className="text-[0.65rem] font-bold text-rose-500 uppercase tracking-widest bg-rose-500/10 px-2 py-0.5 rounded-full">Rejected</span>}
+                           {s.isActive === false && <span className="text-[0.65rem] font-bold text-rose-500 uppercase tracking-widest bg-rose-500/10 px-2 py-0.5 rounded-full">Unavailable</span>}
+                         </div>
                        </div>
                     </div>
                     <p className="text-sm font-medium text-muted mt-auto">By {s.ownerName}</p>
-                    <p className="text-xs text-slate-500 truncate">{s.location.road}, {s.location.city}</p>
-                  </Link>
+                    <p className="text-xs text-slate-500 truncate mb-4">{s.location.road}, {s.location.city}</p>
+                    
+                    <button 
+                      onClick={() => navigate(`/seller/stores/${s.id}`)}
+                      className="w-full mt-2 py-2.5 rounded-xl bg-primary text-white font-semibold neomorph-raised active:neomorph-inset transition-all flex items-center justify-center gap-2"
+                    >
+                      <span>Manage Store</span>
+                    </button>
+                  </div>
                 ))
               )}
             </div>

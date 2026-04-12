@@ -10,6 +10,8 @@ export default function CreateStore() {
   const [formData, setFormData] = useState({
     name: "",
     ownerName: "",
+    description: "",
+    operatingHours: "",
     type: "general_store",
     location: {
       city: "",
@@ -101,6 +103,32 @@ export default function CreateStore() {
                   placeholder="John Doe" 
                   className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 outline-none text-sm font-medium" 
                   required
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2 pl-1">Short Description</label>
+              <div className="neomorph-inset rounded-xl p-1">
+                <textarea 
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Describe your store..." 
+                  className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 outline-none text-sm font-medium resize-none h-20" 
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2 pl-1">Operating Hours</label>
+              <div className="neomorph-inset rounded-xl p-1">
+                <textarea 
+                  value={formData.operatingHours}
+                  onChange={(e) => setFormData({ ...formData, operatingHours: e.target.value })}
+                  placeholder="e.g., Mon-Fri: 9AM - 8PM" 
+                  className="w-full bg-transparent border-none focus:ring-0 px-4 py-3 outline-none text-sm font-medium resize-none h-20" 
                 />
               </div>
             </div>

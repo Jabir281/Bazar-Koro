@@ -1,6 +1,27 @@
 import mongoose from 'mongoose'
 import { createApp } from './app.js'
 import { env } from './env.js'
+import { User } from './models/User.js'
+import { hashPassword } from './auth.js'
+
+async function seedSuperAdmin() {
+  try {
+    const existing = await User.findOne({ email: 'irtizajabir1@gmail.com' })
+    if (!existing) {
+      const passwordHash = await hashPassword('1212IJC')
+      const superAdmin = new User({
+        name: 'Super Admin',
+        email: 'irtizajabir1@gmail.com',
+        passwordHash,
+        roles: ['admin']
+      })
+      await superAdmin.save()
+      console.log('Super admin created!')
+    }
+  } catch (e) {
+    console.error('Failed to seed super admin:', e)
+  }
+}
 
 async function startServer() {
   if (!env.mongoUri) {
@@ -15,6 +36,7 @@ async function startServer() {
       serverSelectionTimeoutMS: 5000,
     })
     console.log('Connected to MongoDB')
+    await seedSuperAdmin()
   } catch (err) {
     console.error('Failed to connect to MongoDB:', err)
     process.exit(1)
