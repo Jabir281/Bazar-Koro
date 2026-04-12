@@ -6,6 +6,7 @@ import { addRoleRoute, loginRoute, meRoute, registerRoute } from './routes/auth.
 import { searchRoute, suggestRoute } from './routes/search.js'
 import { getProductRoute } from './routes/products.js'
 import { requireAuth } from './middleware/auth.js'
+import { upload } from './middleware/upload.js'
 import { addProductToStoreRoute, createStoreRoute, getMyStoresRoute, getStoreWithProductsRoute, getAllStoresRoute, uploadStoreDocumentRoute } from './routes/stores.js'
 import { addToCartRoute, getCartSummaryRoute, removeCartItemRoute, updateCartItemQtyRoute } from './routes/cart.js'
 import { 
@@ -67,7 +68,7 @@ export function createApp() {
   app.post('/api/stores', requireAuth, createStoreRoute as express.RequestHandler)
   app.get('/api/stores', requireAuth, getMyStoresRoute as express.RequestHandler)
   app.get('/api/stores/:storeId', requireAuth, getStoreWithProductsRoute as express.RequestHandler)
-  app.post('/api/stores/:storeId/products', requireAuth, addProductToStoreRoute as express.RequestHandler)
+  app.post('/api/stores/:storeId/products', requireAuth, upload.single('image'), addProductToStoreRoute as express.RequestHandler)
   app.post('/api/stores/:storeId/documents', requireAuth, uploadStoreDocumentRoute as express.RequestHandler)
 
   // Admin Routes

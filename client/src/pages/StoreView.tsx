@@ -37,6 +37,8 @@ export default function StoreView() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [productImageFile, setProductImageFile] = useState<File | null>(null);
+
   useEffect(() => {
     fetchStoreAndProducts();
   }, [storeId]);
@@ -69,6 +71,8 @@ export default function StoreView() {
        alert("File size exceeds 2MB limit!");
        return;
     }
+
+    setProductImageFile(file);
 
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -118,29 +122,34 @@ export default function StoreView() {
       const token = localStorage.getItem("token");
       const price = Number(pPrice);
       if (Number.isNaN(price)) throw new Error('Enter a valid product price');
-      if (!pImageBase64) throw new Error('Product image is required');
+      if (!productImageFile && !pImageBase64) throw new Error('Product image is required');
       if ((pLat && !pLng) || (!pLat && pLng)) throw new Error('Please enter both latitude and longitude or leave both blank');
 
-      const location = pLat && pLng ? {
-        type: 'Point',
-        coordinates: [Number(pLng), Number(pLat)] as [number, number]
-      } : undefined;
+      const formData = new FormData();
+      formData.append("name", pName.trim());
+      formData.append("description", pDesc.trim());
+      formData.append("price", String(price));
+      formData.append("category", pCategory.trim() || 'general');
+      
+      if (productImageFile) {
+         formData.append("image", productImageFile);
+      } else if (pImageBase64) {
+         formData.append("imageUrl", pImageBase64);
+      }
+
+      if (pLat && pLng) {
+         formData.append("location[type]", "Point");
+         formData.append("location[coordinates][0]", String(pLng));
+         formData.append("location[coordinates][1]", String(pLat));
+      }
 
       const res = await fetch(`/api/stores/${storeId}/products`, {
          method: "POST",
          headers: {
-            "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`,
             "x-active-role": "seller"
          },
-         body: JSON.stringify({
-            name: pName.trim(),
-            description: pDesc.trim(),
-            price,
-            category: pCategory.trim() || 'general',
-            imageUrl: pImageBase64,
-            ...(location ? { location } : {})
-         })
+         body: formData
       });
 
       if (!res.ok) {
@@ -159,6 +168,7 @@ export default function StoreView() {
       setPLat("");
       setPLng("");
       setPImageBase64("");
+      setProductImageFile(null);
       setShowAddProduct(false);
 
     } catch (err: any) {

@@ -23,10 +23,10 @@ const productSchema = z.object({
   description: z.string().min(1),
   price: z.coerce.number().min(0),
   category: z.string().optional(),
-  imageUrl: z.string(), // expected to be base64 data url from frontend
+  imageUrl: z.string().optional(), // image URL is either from the body (base64) or populated by Multer
   location: z.object({
     type: z.literal('Point'),
-    coordinates: z.tuple([z.number(), z.number()])
+    coordinates: z.tuple([z.coerce.number(), z.coerce.number()])
   }).optional()
 });
 
@@ -121,7 +121,29 @@ export async function addProductToStoreRoute(req: AuthedRequest, res: Response) 
     return res.status(403).json({ error: 'Only sellers can add products' });
   }
 
-  const parsed = productSchema.safeParse(req.body);
+  // Support both multipart/form-data (where body is parsed but image is in req.file) and application/json
+  let fileUrl = req.body.imageUrl;
+  if ((req as any).file && (req as any).file.path) {
+    fileUrl = (req as any).file.path;
+  }
+
+  const payload = { ...req.body, imageUrl: fileUrl };
+
+  // Parse location if it comes from FormData strings like location[type]
+  if (payload['location[type]'] && payload['location[coordinates][0]']) {
+    payload.location = {
+      type: payload['location[type]'],
+      coordinates: [
+        Number(payload['location[coordinates][0]']),
+        Number(payload['location[coordinates][1]'])
+      ]
+    };
+    delete payload['location[type]'];
+    delete payload['location[coordinates][0]'];
+    delete payload['location[coordinates][1]'];
+  }
+
+  const parsed = productSchema.safeParse(payload);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid product data', details: parsed.error.flatten() });
 
   try {

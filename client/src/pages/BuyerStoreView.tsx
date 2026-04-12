@@ -19,10 +19,30 @@ export default function BuyerStoreView() {
 
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [cartItemCount, setCartItemCount] = useState(0);
 
   useEffect(() => {
     fetchStoreAndProducts();
+    fetchCartSummary();
   }, [storeId]);
+
+  const fetchCartSummary = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const res = await fetch(`/api/cart/summary`, {
+        headers: { "Authorization": `Bearer ${token}`, "x-active-role": "buyer" }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.items) {
+           setCartItemCount(data.items.reduce((acc: number, item: any) => acc + item.qty, 0));
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
    const addToCart = async (productId: string) => {
       const token = localStorage.getItem("token");
@@ -44,6 +64,11 @@ export default function BuyerStoreView() {
          });
 
          if (!res.ok) throw new Error("Failed to add to cart");
+         
+         const data = await res.json();
+         if (data.items) {
+            setCartItemCount(data.items.reduce((acc: number, item: any) => acc + item.qty, 0));
+         }
       } catch (err: any) {
          alert(err.message);
       } finally {
@@ -98,10 +123,15 @@ export default function BuyerStoreView() {
                <div className="flex items-center gap-4">
                   <button
                      onClick={() => navigate("/buyer/cart")}
-                     className="px-4 py-2 rounded-xl neomorph-raised active:neomorph-inset transition-all font-semibold flex items-center gap-2 text-primary"
+                     className="relative px-4 py-2 rounded-xl neomorph-raised active:neomorph-inset transition-all font-semibold flex items-center gap-2 text-primary"
                   >
                      <ShoppingCart className="w-4 h-4" />
                      <span>Cart</span>
+                     {cartItemCount > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                           {cartItemCount}
+                        </span>
+                     )}
                   </button>
                   <div className="text-right hidden sm:block">
                       <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Store Owner</p>
