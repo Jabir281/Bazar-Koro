@@ -6,7 +6,7 @@ import { addRoleRoute, loginRoute, meRoute, registerRoute } from './routes/auth.
 import { searchRoute, suggestRoute } from './routes/search.js'
 import { getProductRoute, getProductsByStoreRoute, updateProductRoute } from './routes/products.js'
 import { requireAuth } from './middleware/auth.js'
-import { addProductToStoreRoute, createStoreRoute, getMyStoresRoute, getStoreWithProductsRoute, getAllStoresRoute } from './routes/stores.js'
+import { addProductToStoreRoute, createStoreRoute, getMyStoresRoute, getStoreWithProductsRoute, getAllStoresRoute, uploadStoreDocumentRoute } from './routes/stores.js'
 import { addToCartRoute, getCartSummaryRoute, removeCartItemRoute, updateCartItemQtyRoute } from './routes/cart.js'
 import { 
   createOrderRoute, 
@@ -16,6 +16,7 @@ import {
   updateOrderStatusRoute 
 } from './routes/orders.js';
 import { driverOverviewRoute, setDriverStatusRoute } from './routes/driver.js';
+import { getAdminStoresRoute, getAdminStoreRoute, updateStoreStatusRoute, updateStoreActiveRoute, deleteStoreRoute, createAdminRoute } from './routes/admin.js';
 
 
 import paymentRoutes from './routes/payment.js'

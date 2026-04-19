@@ -85,6 +85,39 @@ export default function StoreView() {
     reader.readAsDataURL(file);
   };
 
+  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+       alert("Document size exceeds 2MB limit!");
+       return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+       const base64 = reader.result as string;
+       const token = localStorage.getItem("token");
+       try {
+         const res = await fetch(`/api/stores/${storeId}/documents`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+              "x-active-role": "seller"
+            },
+            body: JSON.stringify({ documentUrl: base64 })
+         });
+         if (!res.ok) throw new Error("Upload failed");
+         alert("Document uploaded successfully for admin review!");
+         // Refetch
+         fetchStoreAndProducts();
+       } catch (err: any) {
+         alert(err.message);
+       }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setPLoading(true);
@@ -159,6 +192,8 @@ export default function StoreView() {
              <div>
                 <h1 className="text-3xl font-extrabold tracking-tight">{store.name}</h1>
                 <p className="text-muted font-medium text-sm">Owner: {store.ownerName} • {store.location.city}</p>
+                {store.description && <p className="text-sm mt-1 text-main">{store.description}</p>}
+                {store.operatingHours && <p className="text-xs mt-1 text-primary font-semibold uppercase tracking-wide">Hours: {store.operatingHours}</p>}
              </div>
           </div>
           <div className="flex gap-4">
@@ -201,7 +236,7 @@ export default function StoreView() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-1 pl-1">Price (Taka/USD)</label>
+                      <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-1 pl-1">Price (Taka)</label>
                       <div className="neomorph-inset rounded-xl p-1">
                         <input type="number" step="0.01" min="0" required value={pPrice} onChange={e=>setPPrice(e.target.value)} className="w-full bg-transparent px-4 py-2 outline-none text-sm font-medium" />
                       </div>

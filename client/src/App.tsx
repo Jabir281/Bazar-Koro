@@ -9,6 +9,7 @@ import BuyerStoreView from "./pages/BuyerStoreView";
 import Cart from "./pages/Cart";
 import SearchPage from "./pages/SearchPage";
 import ProductDetail from "./pages/ProductDetail";
+import AdminDashboard from "./pages/AdminDashboard";
 import Success from "./pages/success";
 import Cancel from "./pages/cancel";
 import InventoryDashboard from "./pages/InventoryDashboard";
@@ -20,6 +21,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/seller/create-store" element={<CreateStore />} />
         <Route path="/seller/stores/:storeId" element={<StoreView />} />
