@@ -19,7 +19,16 @@ const createOrderSchema = z.object({
 });
 
 const statusSchema = z.enum([
-  'placed', 'accepted', 'rejected', 'ready_for_pickup', 'claimed', 'at_store', 'picked_up', 'on_the_way', 'delivered'
+  'placed', 
+  'paid', // ✅ Added 'paid' so Zod allows it
+  'accepted', 
+  'rejected', 
+  'ready_for_pickup', 
+  'claimed', 
+  'at_store', 
+  'picked_up', 
+  'on_the_way', 
+  'delivered'
 ]);
 
 const updateStatusSchema = z.object({
@@ -124,7 +133,7 @@ export const updateOrderStatusRoute = async (req: AuthedRequest, res: Response) 
       buyer: new Set(['placed']),
       seller: new Set(['accepted', 'rejected', 'ready_for_pickup']),
       driver: new Set(['claimed', 'at_store', 'picked_up', 'on_the_way', 'delivered']),
-      admin: new Set(['accepted', 'rejected', 'ready_for_pickup', 'claimed', 'at_store', 'picked_up', 'on_the_way', 'delivered']),
+      admin: new Set(['paid', 'accepted', 'rejected', 'ready_for_pickup', 'claimed', 'at_store', 'picked_up', 'on_the_way', 'delivered']), // ✅ Added 'paid' so admins can manually fix orders
       marketer: new Set([]),
     };
 

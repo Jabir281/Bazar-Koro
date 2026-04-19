@@ -11,6 +11,7 @@ import SearchPage from "./pages/SearchPage";
 import ProductDetail from "./pages/ProductDetail";
 import Success from "./pages/success";
 import Cancel from "./pages/cancel";
+import InventoryDashboard from "./pages/InventoryDashboard";
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
         <Route path="/product/:id" element={<ProductDetail />} />
         <Route path="/success" element={<Success />} />
         <Route path="/cancel" element={<Cancel />} />
+        <Route path="/inventory/:storeId" element={<InventoryDashboard />} />
       </Routes>
     </BrowserRouter>
   );

@@ -74,6 +74,11 @@ export async function addToCartRoute(req: AuthedRequest, res: Response) {
   const product = await Product.findById(productId)
   if (!product) return res.status(404).json({ error: 'Product not found' })
 
+  // ✅ Check if there's enough stock
+  if ((product as any).stockQuantity < qty) {
+    return res.status(400).json({ error: 'Not enough stock available', available: (product as any).stockQuantity })
+  }
+
   const store = await Store.findById(typeof product.storeId === 'string' ? product.storeId : product.storeId.toString())
   if (!store) return res.status(404).json({ error: 'Store not found for product' })
 
@@ -101,6 +106,20 @@ export async function addToCartRoute(req: AuthedRequest, res: Response) {
     })
   }
 
+  // ✅ Decrease product stock by the quantity added to cart
+  const updatedProduct = await Product.findByIdAndUpdate(
+    productId,
+    {
+      $inc: { stockQuantity: -qty },
+    },
+    { new: true }
+  )
+
+  // ✅ Auto-toggle isOutOfStock when stock reaches 0
+  if (updatedProduct && (updatedProduct as any).stockQuantity <= 0) {
+    await Product.findByIdAndUpdate(productId, { isOutOfStock: true, stockQuantity: 0 })
+  }
+
   await cart.save()
   return res.status(201).json(computeSummary(cart.items))
 }
@@ -118,6 +137,30 @@ export async function updateCartItemQtyRoute(req: AuthedRequest, res: Response) 
 
   const index = cart.items.findIndex((i) => i.productId === productId)
   if (index < 0) return res.status(404).json({ error: 'Cart item not found' })
+
+  const oldQty = cart.items[index].qty
+  const qtyDifference = qty - oldQty // Positive if increasing, negative if decreasing
+
+  // ✅ Adjust stock based on quantity change
+  if (qtyDifference !== 0) {
+    const product = await Product.findById(productId)
+    if (product) {
+      if (qtyDifference > 0) {
+        // Increasing quantity - check if enough stock
+        if ((product as any).stockQuantity < qtyDifference) {
+          return res.status(400).json({ error: 'Not enough stock available', available: (product as any).stockQuantity })
+        }
+        // Decrease stock
+        await Product.findByIdAndUpdate(productId, { $inc: { stockQuantity: -qtyDifference } })
+      } else {
+        // Decreasing quantity - restore stock
+        await Product.findByIdAndUpdate(productId, {
+          $inc: { stockQuantity: -qtyDifference }, // This adds back since qtyDifference is negative
+          isOutOfStock: false // Re-enable if it was out of stock
+        })
+      }
+    }
+  }
 
   if (qty === 0) {
     cart.items.splice(index, 1)
@@ -137,6 +180,16 @@ export async function removeCartItemRoute(req: AuthedRequest, res: Response) {
 
   const cart = await Cart.findOne({ buyerId: req.user.id })
   if (!cart) return res.json(computeSummary([]))
+
+  const itemToRemove = cart.items.find((i) => i.productId === parsed.data.productId)
+  
+  // ✅ Restore stock when item is removed from cart
+  if (itemToRemove) {
+    await Product.findByIdAndUpdate(itemToRemove.productId, {
+      $inc: { stockQuantity: itemToRemove.qty }, // Add back the quantity
+      isOutOfStock: false // Re-enable if it was out of stock
+    })
+  }
 
   cart.items = cart.items.filter((i) => i.productId !== parsed.data.productId)
   await cart.save()

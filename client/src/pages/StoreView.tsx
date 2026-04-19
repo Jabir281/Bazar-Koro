@@ -13,6 +13,7 @@ interface Product {
     type: 'Point';
     coordinates: [number, number];
   };
+  stockQuantity?: number;
 }
 
 export default function StoreView() {
@@ -39,6 +40,13 @@ export default function StoreView() {
 
   useEffect(() => {
     fetchStoreAndProducts();
+    
+    // ✅ Auto-refresh products every 5 seconds to show real-time stock updates
+    const interval = setInterval(() => {
+      fetchStoreAndProducts();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [storeId]);
 
   const fetchStoreAndProducts = async () => {
@@ -153,14 +161,21 @@ export default function StoreView() {
                 <p className="text-muted font-medium text-sm">Owner: {store.ownerName} • {store.location.city}</p>
              </div>
           </div>
-          
-          <button 
-             onClick={() => setShowAddProduct(!showAddProduct)}
-             className="flex items-center gap-2 px-5 py-3 rounded-xl bg-primary text-white neomorph-raised active:neomorph-inset transition-all font-semibold"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Add Product</span>
-          </button>
+          <div className="flex gap-4">
+            <button 
+               onClick={() => setShowAddProduct(!showAddProduct)}
+               className="flex items-center gap-2 px-5 py-3 rounded-xl bg-primary text-white neomorph-raised active:neomorph-inset transition-all font-semibold"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add Product</span>
+            </button>
+            <button
+              onClick={() => navigate(`/inventory/${storeId}`)}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-blue-500 text-white neomorph-raised active:neomorph-inset transition-all font-semibold"
+            >
+              <span>Inventory Management</span>
+            </button>
+          </div>
         </div>
 
         {/* Add Product Form Modal */}
@@ -260,6 +275,7 @@ export default function StoreView() {
                     </div>
                     <div className="mt-4 pt-3 border-t border-slate-200">
                        <div className="text-lg font-extrabold text-primary">TK {p.price.toFixed(2)}</div>
+                       <div className="text-xs text-muted font-semibold mt-1">Stock: {p.stockQuantity ?? 0}</div>
                     </div>
                  </div>
               ))}

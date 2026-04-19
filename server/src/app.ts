@@ -4,7 +4,7 @@ import cors from 'cors'
 import { healthRoute } from './routes/health.js'
 import { addRoleRoute, loginRoute, meRoute, registerRoute } from './routes/auth.js'
 import { searchRoute, suggestRoute } from './routes/search.js'
-import { getProductRoute } from './routes/products.js'
+import { getProductRoute, getProductsByStoreRoute, updateProductRoute } from './routes/products.js'
 import { requireAuth } from './middleware/auth.js'
 import { addProductToStoreRoute, createStoreRoute, getMyStoresRoute, getStoreWithProductsRoute, getAllStoresRoute } from './routes/stores.js'
 import { addToCartRoute, getCartSummaryRoute, removeCartItemRoute, updateCartItemQtyRoute } from './routes/cart.js'
@@ -17,7 +17,7 @@ import {
 } from './routes/orders.js';
 import { driverOverviewRoute, setDriverStatusRoute } from './routes/driver.js';
 
-// ✅ NEW: Import your payment router
+
 import paymentRoutes from './routes/payment.js'
 
 export function createApp() {
@@ -34,6 +34,8 @@ export function createApp() {
   app.get('/api/search', searchRoute)
   app.get('/api/search/suggest', suggestRoute)
   app.get('/api/products/:id', getProductRoute)
+  app.put('/api/products/:id', requireAuth, updateProductRoute as express.RequestHandler)
+  //app.delete('/api/products/:id', requireAuth, deleteProductRoute as express.RequestHandler)
 
   app.post('/api/auth/register', registerRoute as express.RequestHandler)
   app.post('/api/auth/login', loginRoute as express.RequestHandler)
@@ -53,8 +55,7 @@ export function createApp() {
   app.post('/api/cart/remove', requireAuth, removeCartItemRoute as express.RequestHandler)
   app.get('/api/cart/summary', requireAuth, getCartSummaryRoute as express.RequestHandler)
 
-  // ✅ NEW: Payment Router
-  // We attach it to "/api/payment" so your Cart.tsx fetch call works perfectly
+  // Payment Router
   app.use('/api/payment', paymentRoutes)
 
   // Driver
@@ -67,6 +68,7 @@ export function createApp() {
   app.get('/api/stores', requireAuth, getMyStoresRoute as express.RequestHandler)
   app.get('/api/stores/:storeId', requireAuth, getStoreWithProductsRoute as express.RequestHandler)
   app.post('/api/stores/:storeId/products', requireAuth, addProductToStoreRoute as express.RequestHandler)
+  app.get('/api/products/store/:storeId', requireAuth, getProductsByStoreRoute as express.RequestHandler)
 
   return app
 }

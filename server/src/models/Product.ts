@@ -5,8 +5,10 @@ export interface IProduct {
   description: string
   price: number
   category?: string
+  stockQuantity: number     // Added for inventory
+  isOutOfStock: boolean     // Added for inventory
   storeId: mongoose.Types.ObjectId
-  imageUrl: string
+  imageUrl: string          // Notice it's imageUrl, not image
   location?: {
     type: 'Point'
     coordinates: [number, number]
@@ -16,11 +18,13 @@ export interface IProduct {
 const productSchema = new mongoose.Schema<IProduct>(
   {
     name: { type: String, required: true, index: true },
-    description: { type: String, required: true },
+    description: { type: String, required: true }, // Required!
     price: { type: Number, required: true },
     category: { type: String, default: 'general' },
+    stockQuantity: { type: Number, default: 0 },   // Added
+    isOutOfStock: { type: Boolean, default: false }, // Added
     storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', required: true, index: true },
-    imageUrl: { type: String, required: true },
+    imageUrl: { type: String, required: true },    // Required!
     location: {
       type: {
         type: String,
