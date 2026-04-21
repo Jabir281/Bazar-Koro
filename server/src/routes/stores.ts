@@ -59,7 +59,7 @@ export async function createStoreRoute(req: AuthedRequest, res: Response) {
 export async function getAllStoresRoute(req: AuthedRequest, res: Response) {
   try {
     // Only return approved and active stores for general browse/buyers.
-    const stores = await Store.find({ status: { $in: ['approved', undefined] }, isActive: { $in: [true, undefined] } });
+    const stores = await Store.find({ status: { $in: ['approved', undefined] } as any, isActive: { $in: [true, undefined] } as any });
     return res.json(stores);
   } catch (error: any) {
     return res.status(500).json({ error: 'Server error', details: error.message });

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { LogOut, Plus, ShoppingBag, Store, TrendingUp, User, Shield, Truck } from "lucide-react";
+import { LogOut, Plus, ShoppingBag, Store, TrendingUp, User, Shield, Truck, Megaphone } from "lucide-react";
 import { SellerOMS } from '../components/SellerOMS'; // <-- Imported here!
 
 type UserRole = "buyer" | "seller" | "driver" | "marketer" | "admin";
@@ -32,7 +32,7 @@ interface BuyerOrderLine {
 
 interface BuyerOrder {
   _id: string;
-  status: 'placed' | 'accepted' | 'rejected' | 'ready_for_pickup' | 'claimed' | 'at_store' | 'picked_up' | 'on_the_way' | 'delivered';
+  status: 'placed' | 'paid' | 'accepted' | 'rejected' | 'ready_for_pickup' | 'claimed' | 'at_store' | 'picked_up' | 'on_the_way' | 'delivered';
   lines: BuyerOrderLine[];
   delivery?: {
     deliveryPin?: string;
@@ -254,10 +254,10 @@ export default function Dashboard() {
                 value={user.activeRole}
                 onChange={handleRoleChange}
               >
-                {user.roles.includes("buyer") && <option value="buyer">Buyer Mode</option>}
-                {user.roles.includes("seller") && <option value="seller">Seller Mode</option>}
-                {user.roles.includes("driver") && <option value="driver">Driver Mode</option>}
-                {user.roles.includes("marketer") && <option value="marketer">Marketer Mode</option>}
+                <option value="buyer">Buyer Mode</option>
+                <option value="seller">Seller Mode</option>
+                <option value="driver">Driver Mode</option>
+                <option value="marketer">Marketer Mode</option>
                 {user.roles.includes("admin") && <option value="admin">Admin Mode</option>}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-primary">
@@ -265,7 +265,17 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <button 
+            {user.activeRole === "marketer" && (
+              <button
+                onClick={() => navigate("/marketer/create-ad")}
+                title="Create Ad Campaign"
+                className="flex items-center justify-center w-11 h-11 rounded-xl neomorph-raised active:neomorph-inset transition-all text-primary"
+              >
+                <Megaphone className="w-5 h-5" />
+              </button>
+            )}
+
+            <button
               onClick={handleLogout}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl neomorph-raised active:neomorph-inset transition-all font-semibold text-red-500 hover:text-red-600"
             >
@@ -331,6 +341,17 @@ export default function Dashboard() {
                           </div>
                         ))}
                       </div>
+                      {order.delivery?.deliveryPin && order.status !== 'delivered' && order.status !== 'rejected' && (
+                        <div className="mt-4 pt-4 border-t border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 text-sm text-muted">
+                            <Shield className="w-4 h-4 text-primary" />
+                            Share this PIN with your driver at handoff:
+                          </div>
+                          <div className="px-4 py-2 bg-primary/10 text-primary font-mono font-bold tracking-widest rounded-xl text-lg text-center">
+                            {order.delivery.deliveryPin}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -541,6 +562,41 @@ export default function Dashboard() {
                         ? { label: 'Mark Delivered', nextStatus: 'delivered' }
                         : null;
 
+                      const advanceOrder = async (extraBody: Record<string, unknown> = {}) => {
+                        if (!nextAction) return;
+                        const token = localStorage.getItem('token');
+                        if (!token) return;
+                        const res = await fetch(`/api/orders/${order._id}/status`, {
+                          method: 'PATCH',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                            'x-active-role': 'driver',
+                          },
+                          body: JSON.stringify({ status: nextAction.nextStatus, ...extraBody }),
+                        });
+                        if (!res.ok) {
+                          const data = await res.json().catch(() => ({}));
+                          alert(data.error || 'Failed to update order.');
+                          return;
+                        }
+                        const overviewRes = await fetch('/api/driver/overview', {
+                          headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'x-active-role': 'driver',
+                          },
+                        });
+                        if (overviewRes.ok) setDriverOverview(await overviewRes.json());
+                        setDriverPinInputs((prev) => {
+                          const next = { ...prev };
+                          delete next[order._id];
+                          return next;
+                        });
+                      };
+
+                      const isDeliverStep = nextAction?.nextStatus === 'delivered';
+                      const pinValue = driverPinInputs[order._id] || '';
+
                       return (
                         <div key={order._id} className="border border-primary/10 rounded-3xl p-4 neomorph-inset">
                           <div className="flex items-center justify-between gap-3 mb-3">
@@ -548,30 +604,9 @@ export default function Dashboard() {
                               <p className="font-semibold text-main">Order #{order._id.slice(-6).toUpperCase()}</p>
                               <p className="text-xs text-muted">{order.status.replace(/_/g, ' ')}</p>
                             </div>
-                            {nextAction && (
+                            {nextAction && !isDeliverStep && (
                               <button
-                                onClick={async () => {
-                                  const token = localStorage.getItem('token');
-                                  if (!token) return;
-                                  const res = await fetch(`/api/orders/${order._id}/status`, {
-                                    method: 'PATCH',
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                      'Authorization': `Bearer ${token}`,
-                                      'x-active-role': 'driver',
-                                    },
-                                    body: JSON.stringify({ status: nextAction.nextStatus }),
-                                  });
-                                  if (res.ok) {
-                                    const overviewRes = await fetch('/api/driver/overview', {
-                                      headers: {
-                                        'Authorization': `Bearer ${token}`,
-                                        'x-active-role': 'driver',
-                                      },
-                                    });
-                                    if (overviewRes.ok) setDriverOverview(await overviewRes.json());
-                                  }
-                                }}
+                                onClick={() => advanceOrder()}
                                 className="mt-2 w-full bg-primary text-white rounded-xl py-2 font-semibold neomorph-raised active:neomorph-inset transition-all"
                               >
                                 {nextAction.label}
@@ -586,6 +621,44 @@ export default function Dashboard() {
                               </div>
                             ))}
                           </div>
+
+                          {isDeliverStep && (
+                            <div className="mt-4 pt-4 border-t border-primary/20 space-y-2">
+                              <label className="text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
+                                <Shield className="w-3 h-3 text-primary" />
+                                Enter buyer's 4-digit PIN to complete delivery
+                              </label>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  maxLength={4}
+                                  value={pinValue}
+                                  onChange={(e) =>
+                                    setDriverPinInputs((prev) => ({
+                                      ...prev,
+                                      [order._id]: e.target.value.replace(/\D/g, '').slice(0, 4),
+                                    }))
+                                  }
+                                  placeholder="••••"
+                                  className="flex-1 neomorph-inset rounded-xl px-4 py-2 bg-transparent outline-none font-mono tracking-[0.5em] text-center text-lg text-main"
+                                />
+                                <button
+                                  onClick={() => {
+                                    if (pinValue.length !== 4) {
+                                      alert('PIN must be 4 digits.');
+                                      return;
+                                    }
+                                    advanceOrder({ proof: { pinLast4: pinValue } });
+                                  }}
+                                  disabled={pinValue.length !== 4}
+                                  className="px-4 py-2 bg-primary text-white rounded-xl font-semibold neomorph-raised active:neomorph-inset transition-all disabled:opacity-50"
+                                >
+                                  {nextAction!.label}
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -644,17 +717,6 @@ export default function Dashboard() {
                             </div>
                           ))}
                         </div>
-                        {order.delivery?.deliveryPin && order.status !== 'delivered' && (
-                          <div className="mt-4 pt-4 border-t border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="flex items-center gap-2 text-sm text-muted">
-                              <Shield className="w-4 h-4 text-primary" />
-                              Provide this PIN to your driver:
-                            </div>
-                            <div className="px-4 py-2 bg-primary/10 text-primary font-mono font-bold tracking-widest rounded-xl text-lg text-center">
-                              {order.delivery.deliveryPin}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -682,41 +744,8 @@ export default function Dashboard() {
         {user.activeRole === "admin" && (
           <div className="space-y-6">
             <h2 className="text-2xl font-extrabold tracking-tight mb-4">Admin Dashboard</h2>
-            
-            <div className="neomorph-raised rounded-3xl p-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                <div>
-                  <h3 className="text-xl font-bold">Marketplace Ad Management</h3>
-                  <p className="text-sm text-muted">Upload a new promotional image. This ad will pop up for users when they visit the marketplace.</p>
-                </div>
-              </div>
-              <div className="neomorph-inset rounded-2xl p-6">
-                <input 
-                  type="file" 
-                  accept="image/*,application/pdf"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = async (ev) => {
-                      const base64 = ev.target?.result as string;
-                      const res = await fetch("/api/ads", {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-                          "x-active-role": "admin"
-                        },
-                        body: JSON.stringify({ imageUrl: base64 })
-                      });
-                      if(res.ok) alert("Ad uploaded successfully!");
-                      else alert("Failed to upload ad");
-                    };
-                    reader.readAsDataURL(file);
-                  }}
-                  className="w-full text-sm block cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                />
-              </div>
+            <div className="neomorph-inset rounded-3xl p-6 text-muted text-sm">
+              Use the Admin Operations panel at <button onClick={() => navigate("/admin")} className="text-primary font-bold underline">/admin</button> to manage stores and accounts.
             </div>
           </div>
         )}

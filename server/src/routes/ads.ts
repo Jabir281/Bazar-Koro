@@ -36,10 +36,10 @@ export async function trackClickRoute(req: Request, res: Response) {
   }
 }
 
-// Upload Ad (Admin only)
+// Upload Ad (Marketer only)
 export async function uploadAdRoute(req: AuthedRequest, res: Response) {
-  if (!req.user || req.user.activeRole !== 'admin') {
-    return res.status(403).json({ error: 'Only admins can upload ads' });
+  if (!req.user || (req.user.activeRole !== 'marketer' && req.user.activeRole !== 'admin')) {
+    return res.status(403).json({ error: 'Only marketers can upload ads' });
   }
 
   const schema = z.object({

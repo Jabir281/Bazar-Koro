@@ -85,39 +85,6 @@ export default function StoreView() {
     reader.readAsDataURL(file);
   };
 
-  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-       alert("Document size exceeds 2MB limit!");
-       return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-       const base64 = reader.result as string;
-       const token = localStorage.getItem("token");
-       try {
-         const res = await fetch(`/api/stores/${storeId}/documents`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`,
-              "x-active-role": "seller"
-            },
-            body: JSON.stringify({ documentUrl: base64 })
-         });
-         if (!res.ok) throw new Error("Upload failed");
-         alert("Document uploaded successfully for admin review!");
-         // Refetch
-         fetchStoreAndProducts();
-       } catch (err: any) {
-         alert(err.message);
-       }
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setPLoading(true);

@@ -73,6 +73,14 @@ export function createApp() {
   app.post('/api/stores/:storeId/products', requireAuth, addProductToStoreRoute as express.RequestHandler)
   app.get('/api/products/store/:storeId', requireAuth, getProductsByStoreRoute as express.RequestHandler)
 
+  // Admin
+  app.get('/api/admin/stores', requireAuth, getAdminStoresRoute as express.RequestHandler)
+  app.get('/api/admin/stores/:id', requireAuth, getAdminStoreRoute as express.RequestHandler)
+  app.patch('/api/admin/stores/:id/status', requireAuth, updateStoreStatusRoute as express.RequestHandler)
+  app.patch('/api/admin/stores/:id/active', requireAuth, updateStoreActiveRoute as express.RequestHandler)
+  app.delete('/api/admin/stores/:id', requireAuth, deleteStoreRoute as express.RequestHandler)
+  app.post('/api/admin/admins', requireAuth, createAdminRoute as express.RequestHandler)
+
   // Ads
   app.get('/api/ads/active', getActiveAdRoute as express.RequestHandler)
   app.post('/api/ads/:id/impression', trackImpressionRoute as express.RequestHandler)

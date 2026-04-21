@@ -11,6 +11,11 @@ export interface SearchFilters {
   limit?: number;
 }
 
+export interface SearchSuggestion {
+  _id: string;
+  name: string;
+}
+
 export interface Product {
   _id: string;
   name: string;
@@ -18,6 +23,7 @@ export interface Product {
   price: number;
   category: string;
   storeId: string;
+  imageUrl?: string;
   location?: {
     type: 'Point';
     coordinates: [number, number];

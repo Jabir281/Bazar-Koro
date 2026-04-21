@@ -46,11 +46,16 @@ router.post("/create-checkout-session", requireAuth, async (req: AuthedRequest, 
 
     console.log("💰 Payment Breakdown:", { totalAmount, commission, sellerAmount });
 
+    const pin = Math.floor(1000 + Math.random() * 9000).toString();
+
     // Create the order as 'placed' (which means unpaid for now)
     const order = await Order.create({
       buyerId: new mongoose.Types.ObjectId(req.user.id),
       lines: cart.items,
       status: 'placed',
+      delivery: {
+        deliveryPin: pin
+      }
     });
 
     const session = await stripe.checkout.sessions.create({
@@ -142,7 +147,7 @@ router.post("/payment-success", requireAuth, async (req: AuthedRequest, res: Res
     }
 
     res.json({ success: true, message: "Payment confirmed, cart emptied, and receipt sent!" });
-  } catch (error) {
+  } catch (error: any) {
     console.error("[payment-success] Uncaught error:", error);
     res.status(500).json({ error: error?.message || "Failed to process success" });
   }

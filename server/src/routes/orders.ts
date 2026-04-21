@@ -126,14 +126,45 @@ export const updateOrderStatusRoute = async (req: AuthedRequest, res: Response) 
   try {
     if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
 
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-
     const parsed = updateStatusSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
 
     const nextStatus = parsed.data.status;
     const role = req.user.activeRole;
+
+    // Atomic claim: only the first driver wins. Bail before we even load the full doc.
+    if (role === 'driver' && nextStatus === 'claimed') {
+      const driver = await User.findById(req.user.id).select('isOnline');
+      if (!driver?.isOnline) {
+        return res.status(403).json({ error: 'Driver must be online to update delivery status' });
+      }
+
+      const claimed = await Order.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          status: 'ready_for_pickup',
+          $or: [{ 'delivery.driverId': null }, { 'delivery.driverId': { $exists: false } }],
+        },
+        {
+          $set: {
+            status: 'claimed',
+            'delivery.driverId': new mongoose.Types.ObjectId(req.user.id),
+          },
+        },
+        { new: true }
+      );
+
+      if (!claimed) {
+        return res.status(409).json({ error: 'This order has already been claimed by another driver.' });
+      }
+
+      const orderObj = claimed.toObject();
+      if (orderObj.delivery) delete orderObj.delivery.deliveryPin;
+      return res.json({ order: orderObj });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
 
     const allowedByRole: Record<string, Set<string>> = {
       buyer: new Set(['placed']),
@@ -147,6 +178,11 @@ export const updateOrderStatusRoute = async (req: AuthedRequest, res: Response) 
       const driver = await User.findById(req.user.id).select('isOnline');
       if (!driver?.isOnline) {
         return res.status(403).json({ error: 'Driver must be online to update delivery status' });
+      }
+
+      const assignedId = order.delivery?.driverId?.toString();
+      if (!assignedId || assignedId !== req.user.id) {
+        return res.status(403).json({ error: 'This order is assigned to another driver.' });
       }
     }
 
