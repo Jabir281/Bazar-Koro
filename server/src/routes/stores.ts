@@ -19,12 +19,15 @@ const storeSchema = z.object({
   type: z.enum(['pharmacy', 'general_store'])
 });
 
+// ✅ Updated: Zod now accepts stockQuantity and isOutOfStock!
 const productSchema = z.object({
   name: z.string().min(1),
   description: z.string().min(1),
   price: z.coerce.number().min(0),
   category: z.string().optional(),
-  imageUrl: z.string().optional(), // image URL is either from the body (base64) or populated by Multer
+  stockQuantity: z.coerce.number().min(0).default(0), 
+  isOutOfStock: z.boolean().default(false),
+  imageUrl: z.string(), // expected to be base64 data url from frontend
   location: z.object({
     type: z.literal('Point'),
     coordinates: z.tuple([z.coerce.number(), z.coerce.number()])

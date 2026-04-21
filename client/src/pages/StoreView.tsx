@@ -13,6 +13,7 @@ interface Product {
     type: 'Point';
     coordinates: [number, number];
   };
+  stockQuantity?: number;
 }
 
 export default function StoreView() {
@@ -43,6 +44,13 @@ export default function StoreView() {
 
   useEffect(() => {
     fetchStoreAndProducts();
+    
+    // ✅ Auto-refresh products every 5 seconds to show real-time stock updates
+    const interval = setInterval(() => {
+      fetchStoreAndProducts();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [storeId]);
 
   const fetchStoreAndProducts = async () => {
@@ -213,19 +221,20 @@ export default function StoreView() {
                 {store.operatingHours && <p className="text-xs mt-1 text-primary font-semibold uppercase tracking-wide">Hours: {store.operatingHours}</p>}
              </div>
           </div>
-          
-          <div className="flex gap-3">
-             <label className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-surface text-primary neomorph-raised hover:neomorph-inset active:neomorph-inset transition-all font-semibold shadow-inner cursor-pointer text-sm">
-                <span>Upload Document</span>
-                <input type="file" accept=".pdf,.doc,.docx,.jpg,.png" className="hidden" onChange={handleDocumentUpload} />
-             </label>
-             <button 
-                onClick={() => setShowAddProduct(!showAddProduct)}
-                className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-white neomorph-raised active:neomorph-inset transition-all font-semibold text-sm"
-             >
-               <Plus className="w-5 h-5" />
-               <span>Add Product</span>
-             </button>
+          <div className="flex gap-4">
+            <button 
+               onClick={() => setShowAddProduct(!showAddProduct)}
+               className="flex items-center gap-2 px-5 py-3 rounded-xl bg-primary text-white neomorph-raised active:neomorph-inset transition-all font-semibold"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add Product</span>
+            </button>
+            <button
+              onClick={() => navigate(`/inventory/${storeId}`)}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-blue-500 text-white neomorph-raised active:neomorph-inset transition-all font-semibold"
+            >
+              <span>Inventory Management</span>
+            </button>
           </div>
         </div>
 
@@ -326,6 +335,7 @@ export default function StoreView() {
                     </div>
                     <div className="mt-4 pt-3 border-t border-slate-200">
                        <div className="text-lg font-extrabold text-primary">TK {p.price.toFixed(2)}</div>
+                       <div className="text-xs text-muted font-semibold mt-1">Stock: {p.stockQuantity ?? 0}</div>
                     </div>
                  </div>
               ))}

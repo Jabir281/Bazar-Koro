@@ -7,7 +7,7 @@ import { getUserById } from '../storage.js'
 export interface AuthedRequest extends Request {
   user?: {
     id: string
-    email: string
+    email: string // <-- Add email here
     roles: UserRole[]
     activeRole: UserRole
   }
@@ -33,7 +33,7 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
 
     if (!activeRole) return res.status(403).json({ error: 'User has no roles' })
 
-    req.user = { id: user.id, email: user.email, roles: user.roles, activeRole }
+    req.user = { id: user.id, email: user.email, roles: user.roles, activeRole } // <-- Add email here
     next()
   } catch {
     return res.status(401).json({ error: 'Invalid token' })

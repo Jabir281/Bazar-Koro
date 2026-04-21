@@ -295,7 +295,7 @@ export default function Cart() {
                 disabled={isCheckingOut || isEmpty}
                 className="mt-8 w-full bg-primary text-white py-4 rounded-xl neomorph-raised hover:neomorph-inset active:neomorph-inset transition-all font-extrabold text-lg flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {isCheckingOut ? "Connecting to Stripe..." : "Proceed to Checkout 💳"}
+                {isCheckingOut ? "Connecting to Stripe..." : "Proceed to Checkout"}
               </button>
             </div>
           </div>

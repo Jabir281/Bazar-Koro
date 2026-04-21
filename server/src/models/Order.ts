@@ -14,7 +14,7 @@ const orderSchema = new mongoose.Schema({
   lines: [orderLineSchema],
   status: {
     type: String,
-    enum: ['placed', 'accepted', 'rejected', 'ready_for_pickup', 'claimed', 'at_store', 'picked_up', 'on_the_way', 'delivered'],
+    enum: ['placed', 'paid', 'accepted', 'rejected', 'ready_for_pickup', 'claimed', 'at_store', 'picked_up', 'on_the_way', 'delivered'],
     default: 'placed'
   },
   delivery: {

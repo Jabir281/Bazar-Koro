@@ -4,7 +4,7 @@ import cors from 'cors'
 import { healthRoute } from './routes/health.js'
 import { addRoleRoute, loginRoute, meRoute, registerRoute } from './routes/auth.js'
 import { searchRoute, suggestRoute } from './routes/search.js'
-import { getProductRoute } from './routes/products.js'
+import { getProductRoute, getProductsByStoreRoute, updateProductRoute } from './routes/products.js'
 import { requireAuth } from './middleware/auth.js'
 import { upload } from './middleware/upload.js'
 import { addProductToStoreRoute, createStoreRoute, getMyStoresRoute, getStoreWithProductsRoute, getAllStoresRoute, uploadStoreDocumentRoute } from './routes/stores.js'
@@ -37,6 +37,8 @@ export function createApp() {
   app.get('/api/search', searchRoute)
   app.get('/api/search/suggest', suggestRoute)
   app.get('/api/products/:id', getProductRoute)
+  app.put('/api/products/:id', requireAuth, updateProductRoute as express.RequestHandler)
+  //app.delete('/api/products/:id', requireAuth, deleteProductRoute as express.RequestHandler)
 
   app.post('/api/auth/register', registerRoute as express.RequestHandler)
   app.post('/api/auth/login', loginRoute as express.RequestHandler)
@@ -62,8 +64,7 @@ export function createApp() {
   app.post('/api/cart/remove', requireAuth, removeCartItemRoute as express.RequestHandler)
   app.get('/api/cart/summary', requireAuth, getCartSummaryRoute as express.RequestHandler)
 
-  // ✅ NEW: Payment Router
-  // We attach it to "/api/payment" so your Cart.tsx fetch call works perfectly
+  // Payment Router
   app.use('/api/payment', paymentRoutes)
 
   // Driver
@@ -77,6 +78,7 @@ export function createApp() {
   app.get('/api/stores/:storeId', requireAuth, getStoreWithProductsRoute as express.RequestHandler)
   app.post('/api/stores/:storeId/products', requireAuth, upload.single('image'), addProductToStoreRoute as express.RequestHandler)
   app.post('/api/stores/:storeId/documents', requireAuth, uploadStoreDocumentRoute as express.RequestHandler)
+  app.get('/api/products/store/:storeId', requireAuth, getProductsByStoreRoute as express.RequestHandler)
 
   // Admin Routes
   app.get('/api/admin/stores', requireAuth, getAdminStoresRoute as express.RequestHandler)
