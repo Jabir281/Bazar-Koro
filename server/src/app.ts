@@ -20,6 +20,7 @@ import { getAdminStoresRoute, getAdminStoreRoute, updateStoreStatusRoute, update
 
 
 import paymentRoutes from './routes/payment.js'
+import { getActiveAdRoute, trackImpressionRoute, trackClickRoute, uploadAdRoute, getAdAnalyticsRoute } from './routes/ads.js';
 
 export function createApp() {
   const app = express()
@@ -71,6 +72,13 @@ export function createApp() {
   app.get('/api/stores/:storeId', requireAuth, getStoreWithProductsRoute as express.RequestHandler)
   app.post('/api/stores/:storeId/products', requireAuth, addProductToStoreRoute as express.RequestHandler)
   app.get('/api/products/store/:storeId', requireAuth, getProductsByStoreRoute as express.RequestHandler)
+
+  // Ads
+  app.get('/api/ads/active', getActiveAdRoute as express.RequestHandler)
+  app.post('/api/ads/:id/impression', trackImpressionRoute as express.RequestHandler)
+  app.post('/api/ads/:id/click', trackClickRoute as express.RequestHandler)
+  app.post('/api/ads', requireAuth, uploadAdRoute as express.RequestHandler)
+  app.get('/api/ads/analytics', requireAuth, getAdAnalyticsRoute as express.RequestHandler)
 
   return app
 }

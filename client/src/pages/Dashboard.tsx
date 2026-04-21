@@ -254,10 +254,11 @@ export default function Dashboard() {
                 value={user.activeRole}
                 onChange={handleRoleChange}
               >
-                <option value="buyer">Buyer Mode</option>
-                <option value="seller">Seller Mode</option>
-                <option value="driver">Driver Mode</option>
-                <option value="marketer">Marketer Mode</option>
+                {user.roles.includes("buyer") && <option value="buyer">Buyer Mode</option>}
+                {user.roles.includes("seller") && <option value="seller">Seller Mode</option>}
+                {user.roles.includes("driver") && <option value="driver">Driver Mode</option>}
+                {user.roles.includes("marketer") && <option value="marketer">Marketer Mode</option>}
+                {user.roles.includes("admin") && <option value="admin">Admin Mode</option>}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-primary">
                 <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
@@ -666,8 +667,56 @@ export default function Dashboard() {
         {user.activeRole === "marketer" && (
           <div className="space-y-6">
             <h2 className="text-2xl font-extrabold tracking-tight mb-4">Marketing Dashboard</h2>
-            <div className="neomorph-inset rounded-3xl p-8 flex items-center justify-center min-h-[40vh] text-muted">
-              View affiliate campaigns and promotional content stats. (Coming soon)
+            <div className="neomorph-inset rounded-3xl p-8 flex flex-col items-center justify-center min-h-[40vh] text-muted gap-4">
+              <p>View affiliate campaigns and promotional content stats.</p>
+              <button 
+                onClick={() => navigate("/marketer/analytics")}
+                className="px-6 py-3 bg-primary text-white rounded-xl neomorph-raised hover:neomorph-inset active:neomorph-inset transition-all font-bold"
+              >
+                View Analytics
+              </button>
+            </div>
+          </div>
+        )}
+
+        {user.activeRole === "admin" && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-extrabold tracking-tight mb-4">Admin Dashboard</h2>
+            
+            <div className="neomorph-raised rounded-3xl p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h3 className="text-xl font-bold">Marketplace Ad Management</h3>
+                  <p className="text-sm text-muted">Upload a new promotional image. This ad will pop up for users when they visit the marketplace.</p>
+                </div>
+              </div>
+              <div className="neomorph-inset rounded-2xl p-6">
+                <input 
+                  type="file" 
+                  accept="image/*,application/pdf"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = async (ev) => {
+                      const base64 = ev.target?.result as string;
+                      const res = await fetch("/api/ads", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+                          "x-active-role": "admin"
+                        },
+                        body: JSON.stringify({ imageUrl: base64 })
+                      });
+                      if(res.ok) alert("Ad uploaded successfully!");
+                      else alert("Failed to upload ad");
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                  className="w-full text-sm block cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                />
+              </div>
             </div>
           </div>
         )}

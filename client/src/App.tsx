@@ -13,6 +13,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Success from "./pages/success";
 import Cancel from "./pages/cancel";
 import InventoryDashboard from "./pages/InventoryDashboard";
+import AdAnalytics from "./pages/AdAnalytics";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/marketer/analytics" element={<AdAnalytics />} />
         <Route path="/seller/create-store" element={<CreateStore />} />
         <Route path="/seller/stores/:storeId" element={<StoreView />} />
         <Route path="/buyer/stores/:storeId" element={<BuyerStoreView />} />
