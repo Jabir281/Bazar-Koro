@@ -34,6 +34,9 @@ interface BuyerOrder {
   _id: string;
   status: 'placed' | 'accepted' | 'rejected' | 'ready_for_pickup' | 'claimed' | 'at_store' | 'picked_up' | 'on_the_way' | 'delivered';
   lines: BuyerOrderLine[];
+  delivery?: {
+    deliveryPin?: string;
+  };
   createdAt: string;
 }
 
@@ -57,6 +60,7 @@ interface DriverOverview {
   completedTrips: number;
   activeDeliveries: DriverOrder[];
   availableOrders: DriverOrder[];
+  driverDailyGoal?: number;
 }
 
 export default function Dashboard() {
@@ -69,6 +73,10 @@ export default function Dashboard() {
   const [stores, setStores] = useState<UserStore[]>([]);
   const [buyerOrders, setBuyerOrders] = useState<BuyerOrder[]>([]);
   const [driverOverview, setDriverOverview] = useState<DriverOverview | null>(null);
+  
+  const [driverGoalInput, setDriverGoalInput] = useState('');
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
+  const [driverPinInputs, setDriverPinInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchUserData();
@@ -135,7 +143,9 @@ export default function Dashboard() {
       if (resolvedRole === "driver") {
         const driverRes = await fetch("/api/driver/overview", { headers: { "Authorization": `Bearer ${token}`, "x-active-role": "driver" } });
         if (driverRes.ok) {
-          setDriverOverview(await driverRes.json());
+          const data = await driverRes.json();
+          setDriverOverview(data);
+          setDriverGoalInput(data.driverDailyGoal?.toString() || '');
         }
       } else {
         setDriverOverview(null);
@@ -400,7 +410,7 @@ export default function Dashboard() {
 
         {user.activeRole === "driver" && driverOverview && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="neomorph-raised rounded-3xl p-6 flex flex-col gap-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
@@ -433,14 +443,82 @@ export default function Dashboard() {
                 <p className="text-sm text-muted">Toggle your availability to accept deliveries when you are ready to work.</p>
               </div>
 
-              <div className="neomorph-raised rounded-3xl p-6">
-                <p className="text-sm font-semibold uppercase tracking-wider text-muted">Daily Earnings</p>
-                <p className="text-3xl font-extrabold text-primary">৳{driverOverview.dailyEarnings.toFixed(2)}</p>
+              <div className="neomorph-raised rounded-3xl p-6 md:col-span-2">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold uppercase tracking-wider text-muted">Daily Earnings & Goal</p>
+                  {!isEditingGoal ? (
+                    <button 
+                      onClick={() => setIsEditingGoal(true)}
+                      className="text-xs font-bold text-primary hover:opacity-80 transition-colors"
+                    >
+                      {driverOverview.driverDailyGoal ? 'Edit Goal' : 'Set Goal'}
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="number" 
+                        value={driverGoalInput}
+                        onChange={(e) => setDriverGoalInput(e.target.value)}
+                        className="w-20 px-2 py-1 neomorph-inset rounded-lg bg-transparent outline-none text-sm font-bold text-main"
+                        placeholder="e.g. 500"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={async () => {
+                          const token = localStorage.getItem('token');
+                          if (!token) return;
+                          const res = await fetch('/api/driver/goal', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`,
+                              'x-active-role': 'driver',
+                            },
+                            body: JSON.stringify({ goal: Number(driverGoalInput) || 0 }),
+                          });
+                          if (res.ok) {
+                            const data = await res.json();
+                            setDriverOverview(prev => prev ? { ...prev, driverDailyGoal: data.driverDailyGoal } : prev);
+                            setIsEditingGoal(false);
+                          }
+                        }}
+                        className="text-xs font-bold bg-primary text-white px-2 py-1 rounded-lg"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex items-end gap-3 mb-4">
+                  <p className="text-4xl font-extrabold text-primary">৳{driverOverview.dailyEarnings.toFixed(2)}</p>
+                  {!!driverOverview.driverDailyGoal && (
+                    <p className="text-sm font-medium text-muted pb-1 border-l border-primary/20 pl-3">
+                      / ৳{driverOverview.driverDailyGoal.toFixed(2)} 
+                      <span className="text-[0.65rem] ml-2 bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Today's Target</span>
+                    </p>
+                  )}
+                </div>
+
+                {!!driverOverview.driverDailyGoal && driverOverview.driverDailyGoal > 0 && (
+                  <div className="relative w-full h-4 neomorph-inset rounded-full overflow-hidden p-0.5">
+                    <div 
+                      className="h-full bg-gradient-to-r from-primary to-blue-400 rounded-full transition-all duration-1000 ease-out shadow-sm"
+                      style={{ width: `${Math.min(100, (driverOverview.dailyEarnings / driverOverview.driverDailyGoal) * 100)}%` }}
+                    />
+                  </div>
+                )}
+                {!!driverOverview.driverDailyGoal && driverOverview.driverDailyGoal > 0 && driverOverview.dailyEarnings >= driverOverview.driverDailyGoal && (
+                  <p className="text-xs font-bold text-green-500 mt-3 flex items-center gap-1 animate-pulse">
+                    <TrendingUp className="w-3 h-3" /> Goal Reached! Outstanding performance!
+                  </p>
+                )}
+                <p className="text-xs text-muted mt-3">Only completed delivery fees are counted (৳120 per trip).</p>
               </div>
 
-              <div className="neomorph-raised rounded-3xl p-6">
+              <div className="neomorph-raised rounded-3xl p-6 md:col-span-1 flex flex-col justify-center">
                 <p className="text-sm font-semibold uppercase tracking-wider text-muted">Completed Trips</p>
-                <p className="text-3xl font-extrabold text-primary">{driverOverview.completedTrips}</p>
+                <p className="text-3xl font-extrabold text-primary pt-2">{driverOverview.completedTrips}</p>
               </div>
             </div>
 
@@ -565,6 +643,17 @@ export default function Dashboard() {
                             </div>
                           ))}
                         </div>
+                        {order.delivery?.deliveryPin && order.status !== 'delivered' && (
+                          <div className="mt-4 pt-4 border-t border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 text-sm text-muted">
+                              <Shield className="w-4 h-4 text-primary" />
+                              Provide this PIN to your driver:
+                            </div>
+                            <div className="px-4 py-2 bg-primary/10 text-primary font-mono font-bold tracking-widest rounded-xl text-lg text-center">
+                              {order.delivery.deliveryPin}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

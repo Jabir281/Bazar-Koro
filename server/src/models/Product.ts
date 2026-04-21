@@ -8,6 +8,7 @@ export interface IProduct {
   stockQuantity: number     // Added for inventory
   isOutOfStock: boolean     // Added for inventory
   storeId: mongoose.Types.ObjectId
+  weight?: number
   imageUrl: string          // Notice it's imageUrl, not image
   location?: {
     type: 'Point'
@@ -24,6 +25,7 @@ const productSchema = new mongoose.Schema<IProduct>(
     stockQuantity: { type: Number, default: 0 },   // Added
     isOutOfStock: { type: Boolean, default: false }, // Added
     storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', required: true, index: true },
+    weight: { type: Number, default: 1 },
     imageUrl: { type: String, required: true },    // Required!
     location: {
       type: {

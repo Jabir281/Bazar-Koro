@@ -11,6 +11,7 @@ export interface IUser {
   passwordHash: string;
   roles: UserRole[];
   isOnline?: boolean;
+  driverDailyGoal?: number;
 }
 
 const userSchema = new mongoose.Schema<IUser>(
@@ -25,6 +26,7 @@ const userSchema = new mongoose.Schema<IUser>(
       default: ['buyer']
     },
     isOnline: { type: Boolean, default: false },
+    driverDailyGoal: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

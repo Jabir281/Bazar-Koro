@@ -67,11 +67,17 @@ export const createOrderRoute = async (req: AuthedRequest, res: Response) => {
     const parsed = createOrderSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
 
+    // Generate a secure 4-digit PIN for delivery validation
+    const pin = Math.floor(1000 + Math.random() * 9000).toString();
+
     // Save directly to MongoDB with the safe ObjectId conversion
     const order = await Order.create({
       buyerId: new mongoose.Types.ObjectId(req.user.id),
       lines: parsed.data.lines,
-      status: 'placed'
+      status: 'placed',
+      delivery: {
+        deliveryPin: pin
+      }
     });
 
     return res.status(201).json({ order });
@@ -151,6 +157,16 @@ export const updateOrderStatusRoute = async (req: AuthedRequest, res: Response) 
       });
     }
 
+    if (nextStatus === 'delivered' && role === 'driver') {
+      const providedPin = parsed.data.proof?.pinLast4;
+      if (!providedPin) {
+        return res.status(400).json({ error: 'A 4-digit Delivery PIN is required to complete delivery.' });
+      }
+      if (providedPin !== order.delivery?.deliveryPin) {
+        return res.status(400).json({ error: 'Invalid Delivery PIN provided. Please ask the buyer for their 4-digit PIN.' });
+      }
+    }
+
     // Apply updates
     order.status = nextStatus as any;
     
@@ -173,7 +189,14 @@ export const updateOrderStatusRoute = async (req: AuthedRequest, res: Response) 
     }
 
     await order.save();
-    return res.json({ order });
+    
+    // Convert to plain object to safely remove sensitive info for drivers
+    const orderObj = order.toObject();
+    if (role === 'driver' && orderObj.delivery) {
+      delete orderObj.delivery.deliveryPin;
+    }
+
+    return res.json({ order: orderObj });
   } catch (err) {
     return res.status(500).json({ error: 'Database error updating status' });
   }

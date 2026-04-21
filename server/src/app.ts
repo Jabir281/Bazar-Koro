@@ -15,7 +15,7 @@ import {
   listStoreOrdersRoute, 
   updateOrderStatusRoute 
 } from './routes/orders.js';
-import { driverOverviewRoute, setDriverStatusRoute } from './routes/driver.js';
+import { driverOverviewRoute, setDriverStatusRoute, setDriverGoalRoute } from './routes/driver.js';
 import { getAdminStoresRoute, getAdminStoreRoute, updateStoreStatusRoute, updateStoreActiveRoute, deleteStoreRoute, createAdminRoute } from './routes/admin.js';
 
 
@@ -62,6 +62,7 @@ export function createApp() {
   // Driver
   app.get('/api/driver/overview', requireAuth, driverOverviewRoute)
   app.post('/api/driver/status', requireAuth, setDriverStatusRoute)
+  app.post('/api/driver/goal', requireAuth, setDriverGoalRoute)
 
   // Stores and Products
   app.get('/api/stores/all', requireAuth, getAllStoresRoute as express.RequestHandler)

@@ -32,10 +32,26 @@ function requireBuyer(req: AuthedRequest, res: Response): req is AuthedRequest &
   return true
 }
 
-function computeSummary(items: any[]) {
+function calculateDeliveryCharge(distance: number, weight: number): number {
+  let baseFee = 0;
+  if (distance <= 2) {
+    baseFee = 50;
+  } else if (distance <= 6) {
+    baseFee = 50 + (distance - 2) * 12;
+  } else {
+    baseFee = 98 + (distance - 6) * 15;
+  }
+  
+  return baseFee;
+}
+
+async function computeSummary(items: any[]) {
   const subtotal = items.reduce((acc, item) => acc + item.unitPrice * item.qty, 0)
-  const deliveryCharge = items.length > 0 ? 120 : 0
-  const total = subtotal + deliveryCharge
+  
+  const productIds = items.map((i) => i.productId)
+  const products = await Product.find({ _id: { $in: productIds } })
+  
+  let totalDelivery = 0
 
   const groupedByStore = new Map<string, { storeId: string; storeName?: string; items: any[]; subtotal: number }>()
   for (const item of items) {
@@ -54,11 +70,35 @@ function computeSummary(items: any[]) {
     }
   }
 
+  let platformFee = 0;
+
+  if (items.length > 0) {
+    for (const group of groupedByStore.values()) {
+        let storeWeight = 0;
+        for (const item of group.items) {
+          const product = products.find(p => p.id === item.productId || p._id.toString() === item.productId);
+          const weight = product && (product as any).weight ? (product as any).weight : 1; 
+          storeWeight += weight * item.qty;
+        }
+        
+        // Mock distance for now (4.5 km) since buyer location is not strictly available in this schema
+        const distance = 4.5; 
+        totalDelivery += calculateDeliveryCharge(distance, storeWeight);
+    }
+    
+    // Platform fee
+    platformFee = 10;
+  }
+
+  let total = subtotal + totalDelivery + platformFee
+  total = Math.round(total / 5) * 5
+
   return {
     items,
     grouped: [...groupedByStore.values()],
     subtotal,
-    deliveryCharge,
+    deliveryCharge: totalDelivery,
+    platformFee,
     total,
   }
 }
@@ -121,7 +161,7 @@ export async function addToCartRoute(req: AuthedRequest, res: Response) {
   }
 
   await cart.save()
-  return res.status(201).json(computeSummary(cart.items))
+  return res.status(201).json(await computeSummary(cart.items))
 }
 
 export async function updateCartItemQtyRoute(req: AuthedRequest, res: Response) {
@@ -133,7 +173,7 @@ export async function updateCartItemQtyRoute(req: AuthedRequest, res: Response) 
   const { productId, qty } = parsed.data
 
   const cart = await Cart.findOne({ buyerId: req.user.id })
-  if (!cart) return res.json(computeSummary([]))
+  if (!cart) return res.json(await computeSummary([]))
 
   const index = cart.items.findIndex((i) => i.productId === productId)
   if (index < 0) return res.status(404).json({ error: 'Cart item not found' })
@@ -169,7 +209,7 @@ export async function updateCartItemQtyRoute(req: AuthedRequest, res: Response) 
   }
 
   await cart.save()
-  return res.json(computeSummary(cart.items))
+  return res.json(await computeSummary(cart.items))
 }
 
 export async function removeCartItemRoute(req: AuthedRequest, res: Response) {
@@ -179,7 +219,7 @@ export async function removeCartItemRoute(req: AuthedRequest, res: Response) {
   if (!parsed.success) return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() })
 
   const cart = await Cart.findOne({ buyerId: req.user.id })
-  if (!cart) return res.json(computeSummary([]))
+  if (!cart) return res.json(await computeSummary([]))
 
   const itemToRemove = cart.items.find((i) => i.productId === parsed.data.productId)
   
@@ -193,12 +233,12 @@ export async function removeCartItemRoute(req: AuthedRequest, res: Response) {
 
   cart.items = cart.items.filter((i) => i.productId !== parsed.data.productId)
   await cart.save()
-  return res.json(computeSummary(cart.items))
+  return res.json(await computeSummary(cart.items))
 }
 
 export async function getCartSummaryRoute(req: AuthedRequest, res: Response) {
   if (!requireBuyer(req, res)) return
 
   const cart = await Cart.findOne({ buyerId: req.user.id })
-  return res.json(computeSummary(cart?.items ?? []))
+  return res.json(await computeSummary(cart?.items ?? []))
 }

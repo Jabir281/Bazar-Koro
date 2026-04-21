@@ -24,6 +24,7 @@ interface CartSummary {
   grouped: CartGroup[];
   subtotal: number;
   deliveryCharge: number;
+  platformFee?: number;
   total: number;
 }
 
@@ -283,6 +284,10 @@ export default function Cart() {
                 <div className="flex items-center justify-between text-sm font-semibold">
                   <span className="text-muted">Delivery</span>
                   <span>TK {(summary?.deliveryCharge ?? 0).toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm font-semibold">
+                  <span className="text-muted">Platform Fee</span>
+                  <span>TK {(summary?.platformFee ?? 0).toFixed(2)}</span>
                 </div>
                 <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
                   <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total</span>
