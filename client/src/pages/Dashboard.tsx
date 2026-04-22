@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { LogOut, Plus, ShoppingBag, Store, TrendingUp, User, Shield, Truck, Megaphone } from "lucide-react";
-import { SellerOMS } from '../components/SellerOMS'; // <-- Imported here!
+import { SellerOMS } from '../components/SellerOMS';
 
 type UserRole = "buyer" | "seller" | "driver" | "marketer" | "admin";
 
@@ -18,7 +18,7 @@ interface UserStore {
   name: string;
   ownerName: string;
   type: string;
-  location: { city: string, road: string, address: string };
+  location: { city: string; road: string; address: string };
   status?: string;
   isActive?: boolean;
 }
@@ -51,16 +51,19 @@ interface DriverOrder {
   _id: string;
   status: 'placed' | 'accepted' | 'rejected' | 'ready_for_pickup' | 'claimed' | 'at_store' | 'picked_up' | 'on_the_way' | 'delivered';
   lines: DriverOrderLine[];
+  delivery?: {
+    deliveryPin?: string;
+  };
   createdAt: string;
 }
 
 interface DriverOverview {
   isOnline: boolean;
   dailyEarnings: number;
+  driverDailyGoal?: number;
   completedTrips: number;
   activeDeliveries: DriverOrder[];
   availableOrders: DriverOrder[];
-  driverDailyGoal?: number;
 }
 
 export default function Dashboard() {
@@ -77,6 +80,9 @@ export default function Dashboard() {
   const [driverGoalInput, setDriverGoalInput] = useState('');
   const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [driverPinInputs, setDriverPinInputs] = useState<Record<string, string>>({});
+  const [showPromoModal, setShowPromoModal] = useState(false);
+  const [promoEmails, setPromoEmails] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
 
   useEffect(() => {
     fetchUserData();
@@ -195,6 +201,52 @@ export default function Dashboard() {
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
+    }
+  };
+
+  const handleSendPromoEmail = async () => {
+    const emails = promoEmails.split('\n').map(email => email.trim()).filter(email => email);
+    
+    if (emails.length === 0) {
+      alert('Please enter at least one email address');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const invalidEmails = emails.filter(email => !emailRegex.test(email));
+    
+    if (invalidEmails.length > 0) {
+      alert(`Invalid email addresses: ${invalidEmails.join(', ')}`);
+      return;
+    }
+
+    setPromoLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/newsletter/test", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "x-active-role": "marketer"
+        },
+        body: JSON.stringify({
+          emails: emails,
+          neighborhood: "Custom Promo"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send promo email");
+      }
+
+      alert(`Promo email sent successfully to ${emails.length} recipient(s)!`);
+      setShowPromoModal(false);
+      setPromoEmails('');
+    } catch (err: any) {
+      alert("Error sending promo email: " + err.message);
+    } finally {
+      setPromoLoading(false);
     }
   };
 
@@ -411,7 +463,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* --- SELLER OMS SECTION --- */}
             {stores.length > 0 && (
               <div className="mt-12 space-y-8">
                 <h2 className="text-2xl font-extrabold tracking-tight border-t border-primary/20 pt-8">Incoming Orders</h2>
@@ -426,7 +477,6 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
-            {/* -------------------------- */}
           </div>
         )}
 
@@ -728,15 +778,24 @@ export default function Dashboard() {
 
         {user.activeRole === "marketer" && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-extrabold tracking-tight mb-4">Marketing Dashboard</h2>
-            <div className="neomorph-inset rounded-3xl p-8 flex flex-col items-center justify-center min-h-[40vh] text-muted gap-4">
-              <p>View affiliate campaigns and promotional content stats.</p>
-              <button 
-                onClick={() => navigate("/marketer/analytics")}
-                className="px-6 py-3 bg-primary text-white rounded-xl neomorph-raised hover:neomorph-inset active:neomorph-inset transition-all font-bold"
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <h2 className="text-2xl font-extrabold tracking-tight">Marketing Dashboard</h2>
+              <button
+                onClick={() => setShowPromoModal(true)}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-primary text-white neomorph-raised active:neomorph-inset transition-all font-semibold shadow-inner"
               >
-                View Analytics
+                <TrendingUp className="w-5 h-5" />
+                <span>Send Promo Email</span>
               </button>
+            </div>
+
+            <div className="neomorph-inset rounded-3xl p-8 flex items-center justify-center min-h-[40vh] text-muted">
+              <div className="text-center">
+                <TrendingUp className="w-16 h-16 mx-auto mb-4 text-primary/50" />
+                <h3 className="text-lg font-bold mb-2">Marketing Tools</h3>
+                <p>Send promotional emails to specific customers or run marketing campaigns.</p>
+                <p className="text-sm mt-2">Use the "Send Promo Email" button above to get started.</p>
+              </div>
             </div>
           </div>
         )}
@@ -750,6 +809,57 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {/* Promo Email Modal - Only shown for marketer role */}
+      {showPromoModal && user.activeRole === "marketer" && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="neomorph-raised rounded-3xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4 text-primary">Send Promo Email</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-main">
+                  Email Addresses (one per line)
+                </label>
+                <textarea
+                  value={promoEmails}
+                  onChange={(e) => setPromoEmails(e.target.value)}
+                  placeholder="customer1@example.com&#10;customer2@example.com&#10;customer3@example.com"
+                  className="w-full h-32 p-3 rounded-xl neomorph-inset resize-none outline-none text-main"
+                  disabled={promoLoading}
+                />
+                <p className="text-xs text-muted mt-1">
+                  Enter one email address per line. We'll send promotional content to these addresses.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPromoModal(false)}
+                  className="flex-1 px-4 py-2 rounded-xl neomorph-raised active:neomorph-inset transition-all font-semibold text-muted"
+                  disabled={promoLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSendPromoEmail}
+                  disabled={promoLoading}
+                  className="flex-1 px-4 py-2 rounded-xl bg-primary text-white neomorph-raised active:neomorph-inset transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {promoLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Sending...
+                    </div>
+                  ) : (
+                    'Send Email'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

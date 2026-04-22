@@ -18,6 +18,7 @@ export interface UserPublic {
   name: string;
   email: string;
   roles: UserRole[];
+  neighborhood?: string;
 }
 
 export interface CartLine {

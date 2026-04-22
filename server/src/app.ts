@@ -21,6 +21,7 @@ import { getAdminStoresRoute, getAdminStoreRoute, updateStoreStatusRoute, update
 
 import paymentRoutes from './routes/payment.js'
 import { getActiveAdRoute, trackImpressionRoute, trackClickRoute, uploadAdRoute, getAdAnalyticsRoute } from './routes/ads.js';
+import newsletterRoutes from './routes/newsletter.js'
 
 export function createApp() {
   const app = express()
@@ -59,6 +60,9 @@ export function createApp() {
 
   // Payment Router
   app.use('/api/payment', paymentRoutes)
+
+  // Newsletter
+  app.use('/api/newsletter', newsletterRoutes)
 
   // Driver
   app.get('/api/driver/overview', requireAuth, driverOverviewRoute)

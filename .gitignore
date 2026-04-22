@@ -1,0 +1,15 @@
+node_modules/
+test/
+.DS_Store
+.venv/
+.env
+.env.*
+dist/
+build/
+coverage/
+*.log
+report_text.txt
+*.pdf
+LEARNING.md
+.gitignore
+

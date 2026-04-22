@@ -20,6 +20,7 @@ export interface Product {
   category: string;
   storeId: string;
   imageUrl: string;
+  sponsored: boolean;
   // GeoJSON format for MongoDB geospatial queries
   location?: {
     type: 'Point';

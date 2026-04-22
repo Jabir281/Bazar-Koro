@@ -10,6 +10,7 @@ export interface IProduct {
   storeId: mongoose.Types.ObjectId
   weight?: number
   imageUrl: string          // Notice it's imageUrl, not image
+  sponsored: boolean
   location?: {
     type: 'Point'
     coordinates: [number, number]
@@ -27,6 +28,7 @@ const productSchema = new mongoose.Schema<IProduct>(
     storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', required: true, index: true },
     weight: { type: Number, default: 1 },
     imageUrl: { type: String, required: true },    // Required!
+    sponsored: { type: Boolean, default: false },
     location: {
       type: {
         type: String,

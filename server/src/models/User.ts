@@ -10,6 +10,7 @@ export interface IUser {
   email: string;
   passwordHash: string;
   roles: UserRole[];
+  neighborhood?: string;
   isOnline?: boolean;
   driverDailyGoal?: number;
 }
@@ -25,6 +26,7 @@ const userSchema = new mongoose.Schema<IUser>(
       enum: ['buyer', 'seller', 'driver', 'marketer', 'admin'],
       default: ['buyer']
     },
+    neighborhood: { type: String },
     isOnline: { type: Boolean, default: false },
     driverDailyGoal: { type: Number, default: 0 },
   },

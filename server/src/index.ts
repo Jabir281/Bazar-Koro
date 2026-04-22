@@ -22,6 +22,8 @@ async function seedSuperAdmin() {
     console.error('Failed to seed super admin:', e)
   }
 }
+import cron from 'node-cron'
+import { sendWeeklyNewsletter } from './services/newsletter.js'
 
 async function startServer() {
   if (!env.mongoUri) {
@@ -48,6 +50,12 @@ async function startServer() {
     // eslint-disable-next-line no-console
     console.log(`API listening on http://localhost:${env.port}`)
   })
+
+  // Schedule weekly newsletter every Sunday at 10 AM
+  cron.schedule('0 10 * * 0', () => {
+    console.log('Sending weekly newsletter...');
+    sendWeeklyNewsletter();
+  });
 }
 
 startServer()
