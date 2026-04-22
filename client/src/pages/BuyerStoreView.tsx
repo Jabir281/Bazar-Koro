@@ -258,8 +258,18 @@ export default function BuyerStoreView() {
                     <div key={r._id} className="p-4 rounded-2xl bg-surface neomorph-inset">
                        <div className="flex items-center justify-between mb-2">
                           <span className="font-bold text-primary">{r.buyerId?.name || "Anonymous"}</span>
-                          <div className="flex gap-1">\n                             {Array.from({ length: 5 }).map((_, i) => (
-                                <Star key={i} className={`w-4 h-4 ${i < r.rating ? 'fill-orange-500 text-orange-500' : 'text-slate-300'}`} />\n                             ))}\n                          </div>\n                       </div>\n                       <p className="text-muted text-sm italic">"{r.comment}"</p>\n                    </div>\n                 ))}\n              </div>\n           </div>\n        )}
+                          <div className="flex gap-1">
+                             {Array.from({ length: 5 }).map((_, i) => (
+                                <Star key={i} className={`w-4 h-4 ${i < r.rating ? 'fill-orange-500 text-orange-500' : 'text-slate-300'}`} />
+                             ))}
+                          </div>
+                       </div>
+                       <p className="text-muted text-sm italic">"{r.comment}"</p>
+                    </div>
+                 ))}
+              </div>
+           </div>
+        )}
       </div>
     </div>
   );

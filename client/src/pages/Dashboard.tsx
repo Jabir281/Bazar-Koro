@@ -54,6 +54,16 @@ interface DriverOrder {
   status: 'placed' | 'accepted' | 'rejected' | 'ready_for_pickup' | 'claimed' | 'at_store' | 'picked_up' | 'on_the_way' | 'delivered';
   lines: DriverOrderLine[];
   createdAt: string;
+  storeInfo?: {
+    id: string;
+    name: string;
+    location?: { city: string; road: string };
+    road?: string;
+    city?: string;
+  };
+  distanceKm?: number;
+  dropOffDistanceKm?: number;
+  deliveryFee?: number;
 }
 
 interface DriverOverview {
@@ -82,6 +92,88 @@ export default function Dashboard() {
   useEffect(() => {
     fetchUserData();
   }, [selectedRole]);
+
+  // Auto-refresh driver overview every 30 seconds when online
+  useEffect(() => {
+    if (selectedRole !== 'driver' || !driverOverview?.isOnline) return;
+
+    const interval = setInterval(async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      try {
+        const res = await fetch('/api/driver/overview', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'x-active-role': 'driver'
+          }
+        });
+        if (res.ok) {
+          setDriverOverview(await res.json());
+        }
+      } catch (err) {
+        console.error('Failed to refresh driver overview:', err);
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [selectedRole, driverOverview?.isOnline]);
+
+  // Request geolocation permission and update location periodically
+  useEffect(() => {
+    if (selectedRole !== 'driver') return;
+
+    if ('geolocation' in navigator) {
+      // Request initial position
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          updateDriverLocation(position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          console.log('Geolocation permission denied or error:', error.message);
+        }
+      );
+
+      // Continue updating location every 10 seconds when online
+      let watchId: number | null = null;
+      if (driverOverview?.isOnline) {
+        watchId = navigator.geolocation.watchPosition(
+          (position) => {
+            updateDriverLocation(position.coords.latitude, position.coords.longitude);
+          },
+          (error) => {
+            console.log('Geolocation watch error:', error);
+          },
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+        );
+      }
+
+      return () => {
+        if (watchId !== null) {
+          navigator.geolocation.clearWatch(watchId);
+        }
+      };
+    }
+  }, [selectedRole, driverOverview?.isOnline]);
+
+  const updateDriverLocation = async (latitude: number, longitude: number) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      await fetch('/api/driver/location', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'x-active-role': 'driver'
+        },
+        body: JSON.stringify({ latitude, longitude })
+      });
+    } catch (err) {
+      console.error('Failed to update driver location:', err);
+    }
+  };
 
   const fetchUserData = async () => {
     setLoading(true);
@@ -545,6 +637,13 @@ export default function Dashboard() {
                             <div>
                               <p className="font-semibold text-main">Order #{order._id.slice(-6).toUpperCase()}</p>
                               <p className="text-xs text-muted">{order.status.replace(/_/g, ' ')}</p>
+                              {order.storeInfo && (
+                                <p className="text-xs text-muted mt-1 flex items-center gap-1">
+                                  <Store className="w-3 h-3" />
+                                  <span className="font-semibold text-main mr-1">Pickup:</span>
+                                  {order.storeInfo.road}, {order.storeInfo.city}
+                                </p>
+                              )}
                             </div>
                             {nextAction && (
                               <button
@@ -584,6 +683,18 @@ export default function Dashboard() {
                               </div>
                             ))}
                           </div>
+                          {order.dropOffDistanceKm !== undefined && order.dropOffDistanceKm > 0 && (
+                            <div className="flex justify-between items-center text-sm border-t border-slate-200 pt-2 text-slate-500 mt-2">
+                              <span>Drop-off Distance:</span>
+                              <span className="font-semibold">{order.dropOffDistanceKm} km</span>
+                            </div>
+                          )}
+                          {order.deliveryFee !== undefined && (
+                            <div className="flex justify-between items-center pt-2">
+                              <span className="font-semibold text-primary">Delivery Fee:</span>
+                              <span className="text-lg font-bold text-green-600">৳{order.deliveryFee}</span>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -602,9 +713,25 @@ export default function Dashboard() {
                     {driverOverview.availableOrders.map((order) => (
                       <div key={order._id} className="border border-primary/10 rounded-3xl p-4 neomorph-inset">
                         <div className="flex items-center justify-between gap-3 mb-3">
-                          <div>
-                            <p className="font-semibold text-main">Order #{order._id.slice(-6).toUpperCase()}</p>
-                            <p className="text-xs text-muted">Ready for pickup</p>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <p className="font-semibold text-main">Order #{order._id.slice(-6).toUpperCase()}</p>
+                              <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">
+                                Ready
+                              </span>
+                            </div>
+                            {order.storeInfo && (
+                              <p className="text-xs text-muted mb-1 flex items-center gap-1">
+                                <Store className="w-3 h-3" />
+                                <span className="font-semibold text-main mr-1">Pickup:</span>
+                                {order.storeInfo.road}, {order.storeInfo.city}
+                              </p>
+                            )}
+                            {order.distanceKm !== undefined && order.distanceKm > 0 && (
+                              <p className="text-xs text-slate-500">
+                                 📍 {order.distanceKm.toFixed(1)} km away
+                              </p>
+                            )}
                           </div>
                           <button
                             onClick={async () => {
@@ -629,12 +756,13 @@ export default function Dashboard() {
                                 if (overviewRes.ok) setDriverOverview(await overviewRes.json());
                               }
                             }}
-                            className="mt-2 bg-primary text-white rounded-xl py-2 px-3 font-semibold neomorph-raised active:neomorph-inset transition-all"
+                            className="bg-primary text-white rounded-xl py-2 px-3 font-semibold neomorph-raised active:neomorph-inset transition-all hover:shadow-lg"
                           >
                             Claim
                           </button>
                         </div>
-                        <div className="space-y-2 text-sm text-main">
+
+                        <div className="space-y-2 text-sm text-main mb-3 border-t border-slate-200 pt-3">
                           {order.lines.map((line) => (
                             <div key={line.productId} className="flex justify-between">
                               <span>{line.qty}x {line.name}</span>
@@ -642,6 +770,20 @@ export default function Dashboard() {
                             </div>
                           ))}
                         </div>
+
+                        {order.dropOffDistanceKm !== undefined && order.dropOffDistanceKm > 0 && (
+                          <div className="flex justify-between items-center text-sm border-t border-slate-200 pt-2 text-slate-500">
+                            <span>Drop-off Distance:</span>
+                            <span className="font-semibold">{order.dropOffDistanceKm} km</span>
+                          </div>
+                        )}
+
+                        {order.deliveryFee !== undefined && (
+                          <div className="flex justify-between items-center pt-2">
+                            <span className="font-semibold text-primary">Delivery Fee:</span>
+                            <span className="text-lg font-bold text-green-600">৳{order.deliveryFee}</span>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

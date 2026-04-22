@@ -26,6 +26,11 @@ export interface Product {
   distance?: number;
   createdAt?: string;
   updatedAt?: string;
+  // ✅ Module 4: Promotions
+  isPromoted?: boolean;
+  isCurrentlyPromoted?: boolean;
+  adBudget?: number;
+  promotedUntil?: string;
 }
 
 export interface SearchSuggestion {

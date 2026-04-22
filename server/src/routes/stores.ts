@@ -14,7 +14,8 @@ const storeSchema = z.object({
   location: z.object({
     city: z.string().min(1),
     road: z.string().min(1),
-    address: z.string().min(1)
+    address: z.string().min(1),
+    coordinates: z.tuple([z.number(), z.number()]).optional() // [lng, lat]
   }),
   type: z.enum(['pharmacy', 'general_store'])
 });

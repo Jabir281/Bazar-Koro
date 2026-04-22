@@ -17,6 +17,8 @@ const orderSchema = new mongoose.Schema({
     enum: ['placed', 'paid', 'accepted', 'rejected', 'ready_for_pickup', 'claimed', 'at_store', 'picked_up', 'on_the_way', 'delivered'],
     default: 'placed'
   },
+  deliveryFee: { type: Number, default: 0 },
+  deliveryDistanceKm: { type: Number, default: 0 },
   delivery: {
     driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     proof: {

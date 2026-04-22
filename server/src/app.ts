@@ -16,9 +16,10 @@ import {
   listStoreOrdersRoute, 
   updateOrderStatusRoute 
 } from './routes/orders.js';
-import { driverOverviewRoute, setDriverStatusRoute } from './routes/driver.js';
+import { driverOverviewRoute, setDriverStatusRoute, updateDriverLocationRoute } from './routes/driver.js';
 import { getAdminStoresRoute, getAdminStoreRoute, updateStoreStatusRoute, updateStoreActiveRoute, deleteStoreRoute, createAdminRoute } from './routes/admin.js';
 import { addReviewRoute, getStoreReviewsRoute, getProductReviewsRoute } from './routes/reviews.js';
+import { promoteProductRoute, getAdStatusRoute, cancelPromotionRoute, getActivePromotionsRoute } from './routes/promotions.js';
 
 // Order payments
 import paymentRoutes from './routes/payment.js'
@@ -70,6 +71,7 @@ export function createApp() {
   // Driver
   app.get('/api/driver/overview', requireAuth, driverOverviewRoute)
   app.post('/api/driver/status', requireAuth, setDriverStatusRoute)
+  app.post('/api/driver/location', requireAuth, updateDriverLocationRoute)
 
   // Stores and Products
   app.get('/api/stores/all', requireAuth, getAllStoresRoute as express.RequestHandler)
@@ -79,6 +81,12 @@ export function createApp() {
   app.post('/api/stores/:storeId/products', requireAuth, upload.single('image'), addProductToStoreRoute as express.RequestHandler)
   app.post('/api/stores/:storeId/documents', requireAuth, uploadStoreDocumentRoute as express.RequestHandler)
   app.get('/api/products/store/:storeId', requireAuth, getProductsByStoreRoute as express.RequestHandler)
+
+  // Promotions (Module 4)
+  app.post('/api/products/:productId/promote', requireAuth, promoteProductRoute as express.RequestHandler)
+  app.get('/api/products/:productId/ad-status', requireAuth, getAdStatusRoute as express.RequestHandler)
+  app.delete('/api/products/:productId/promote', requireAuth, cancelPromotionRoute as express.RequestHandler)
+  app.get('/api/promotions/active', requireAuth, getActivePromotionsRoute as express.RequestHandler)
 
   // Admin Routes
   app.get('/api/admin/stores', requireAuth, getAdminStoresRoute as express.RequestHandler)

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Store, ArrowLeft } from "lucide-react";
+import { Store, ArrowLeft, MapPin } from "lucide-react";
+import MapLocationPicker from "../components/MapLocationPicker";
 
 export default function CreateStore() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mapOpen, setMapOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -17,6 +19,7 @@ export default function CreateStore() {
       city: "",
       road: "",
       address: "",
+      coordinates: [0, 0] as [number, number], // [lng, lat]
     }
   });
 
@@ -154,6 +157,26 @@ export default function CreateStore() {
 
           <div className="pt-4 border-t border-slate-200/50">
              <h3 className="text-sm font-bold text-main mb-4">Location Details</h3>
+             
+             <div className="mb-6">
+               <button
+                 type="button"
+                 onClick={() => setMapOpen(true)}
+                 className="w-full flex items-center justify-center gap-3 py-4 rounded-xl neomorph-raised bg-primary/5 hover:bg-primary/10 text-primary font-semibold transition-all active:neomorph-inset border-2 border-primary/20"
+               >
+                 <MapPin className="w-5 h-5" />
+                 Set Location from Map
+               </button>
+               {formData.location.coordinates[0] !== 0 && formData.location.coordinates[1] !== 0 && (
+                 <div className="mt-3 p-3 rounded-xl bg-green-50 neomorph-inset flex items-center gap-2">
+                   <div className="w-2 h-2 rounded-full bg-green-600"></div>
+                   <p className="text-xs text-green-700 font-semibold">
+                     Location set: {formData.location.coordinates[1].toFixed(4)}°N, {formData.location.coordinates[0].toFixed(4)}°E
+                   </p>
+                 </div>
+               )}
+             </div>
+
              <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2 pl-1">City</label>
@@ -202,6 +225,20 @@ export default function CreateStore() {
           </button>
         </form>
       </div>
+
+      <MapLocationPicker
+        isOpen={mapOpen}
+        onClose={() => setMapOpen(false)}
+        onSelectLocation={(coords) => {
+          setFormData({
+            ...formData,
+            location: {
+              ...formData.location,
+              coordinates: [coords.longitude, coords.latitude],
+            }
+          });
+        }}
+      />
     </div>
   );
 }

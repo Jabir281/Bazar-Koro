@@ -11,6 +11,11 @@ export interface IUser {
   passwordHash: string;
   roles: UserRole[];
   isOnline?: boolean;
+  currentLocation?: {
+    type: 'Point';
+    coordinates: [number, number]; // [lng, lat]
+  };
+  lastLocationUpdate?: Date;
 }
 
 const userSchema = new mongoose.Schema<IUser>(
@@ -25,9 +30,24 @@ const userSchema = new mongoose.Schema<IUser>(
       default: ['buyer']
     },
     isOnline: { type: Boolean, default: false },
+    currentLocation: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point'
+      },
+      coordinates: {
+        type: [Number], // [lng, lat]
+        default: [0, 0]
+      }
+    },
+    lastLocationUpdate: { type: Date, default: null },
   },
   { timestamps: true }
 );
+
+// Create geospatial index for nearby orders
+userSchema.index({ 'currentLocation': '2dsphere' });
 
 // Map the _id to id to match the legacy 'nanoid' structure for the frontend automatically.
 userSchema.set('toJSON', {

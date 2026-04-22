@@ -37,24 +37,28 @@ export default function StoreView() {
   const [pLng, setPLng] = useState("");
   const [pImageBase64, setPImageBase64] = useState("");
   const [pLoading, setPLoading] = useState(false);
+  const [promoteProductId, setPromoteProductId] = useState<string | null>(null);
+  const [adBudget, setAdBudget] = useState<string>('500');
+  const [durationDays, setDurationDays] = useState<string>('30');
+  const [promotingId, setPromotingId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [productImageFile, setProductImageFile] = useState<File | null>(null);
 
   useEffect(() => {
-    fetchStoreAndProducts();
+    fetchStoreAndProducts(false);
     
     // ✅ Auto-refresh products every 5 seconds to show real-time stock updates
     const interval = setInterval(() => {
-      fetchStoreAndProducts();
+      fetchStoreAndProducts(true);
     }, 5000);
 
     return () => clearInterval(interval);
   }, [storeId]);
 
-  const fetchStoreAndProducts = async () => {
-    setLoading(true);
+  const fetchStoreAndProducts = async (isPolling = false) => {
+    if (!isPolling) setLoading(true);
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`/api/stores/${storeId}`, {
@@ -71,7 +75,7 @@ export default function StoreView() {
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (!isPolling) setLoading(false);
     }
   };
 
@@ -93,38 +97,39 @@ export default function StoreView() {
     reader.readAsDataURL(file);
   };
 
-  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-       alert("Document size exceeds 2MB limit!");
-       return;
-    }
+  // Document upload handler - currently unused but kept for future implementation
+  // const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
+  //   if (file.size > 2 * 1024 * 1024) {
+  //      alert("Document size exceeds 2MB limit!");
+  //      return;
+  //   }
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-       const base64 = reader.result as string;
-       const token = localStorage.getItem("token");
-       try {
-         const res = await fetch(`/api/stores/${storeId}/documents`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`,
-              "x-active-role": "seller"
-            },
-            body: JSON.stringify({ documentUrl: base64 })
-         });
-         if (!res.ok) throw new Error("Upload failed");
-         alert("Document uploaded successfully for admin review!");
-         // Refetch
-         fetchStoreAndProducts();
-       } catch (err: any) {
-         alert(err.message);
-       }
-    };
-    reader.readAsDataURL(file);
-  };
+  //   const reader = new FileReader();
+  //   reader.onload = async () => {
+  //      const base64 = reader.result as string;
+  //      const token = localStorage.getItem("token");
+  //      try {
+  //        const res = await fetch(`/api/stores/${storeId}/documents`, {
+  //           method: "POST",
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //             "Authorization": `Bearer ${token}`,
+  //             "x-active-role": "seller"
+  //           },
+  //           body: JSON.stringify({ documentUrl: base64 })
+  //        });
+  //        if (!res.ok) throw new Error("Upload failed");
+  //        alert("Document uploaded successfully for admin review!");
+  //        // Refetch
+  //        fetchStoreAndProducts();
+  //      } catch (err: any) {
+  //        alert(err.message);
+  //      }
+  //   };
+  //   reader.readAsDataURL(file);
+  // };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,6 +192,55 @@ export default function StoreView() {
        alert(err.message);
     } finally {
       setPLoading(false);
+    }
+  };
+
+  // ✅ HANDLE PRODUCT PROMOTION
+  const handlePromoteProduct = async (productId: string) => {
+    try {
+      const budget = Number(adBudget);
+      const days = Number(durationDays);
+
+      if (Number.isNaN(budget) || budget <= 0) {
+        alert('Please enter a valid ad budget');
+        return;
+      }
+      if (Number.isNaN(days) || days <= 0) {
+        alert('Please enter valid duration');
+        return;
+      }
+
+      setPromotingId(productId);
+      const token = localStorage.getItem('token');
+      
+      const res = await fetch(`/api/products/${productId}/promote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'x-active-role': 'seller',
+        },
+        body: JSON.stringify({
+          adBudget: budget,
+          durationDays: days,
+        }),
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        throw new Error(errBody?.error || 'Failed to promote product');
+      }
+
+      await res.json();
+      alert(`Product promoted for ${days} days with budget ৳${budget}!`);
+      setPromoteProductId(null);
+      
+      // Refresh products list
+      await fetchStoreAndProducts(false);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setPromotingId(null);
     }
   };
 
@@ -315,6 +369,75 @@ export default function StoreView() {
            </div>
         )}
 
+        {/* Promotion Modal */}
+        {promoteProductId && (
+           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+              <div className="bg-surface neomorph-raised rounded-[2rem] w-full max-w-md p-8 relative">
+                 <button onClick={() => setPromoteProductId(null)} className="absolute top-6 right-6 text-slate-500 hover:text-red-500 font-bold px-3 py-1 rounded-full neomorph-raised">✕</button>
+                 <h2 className="text-2xl font-bold mb-6 text-center">🚀 Promote Your Product</h2>
+                 
+                 <div className="space-y-4 text-left">
+                    <p className="text-sm text-muted mb-6">Set your advertising budget and duration. Your product will appear at the top of search results and get priority visibility.</p>
+
+                    <div>
+                      <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-1 pl-1">Ad Budget (Taka)</label>
+                      <div className="neomorph-inset rounded-xl p-1">
+                        <input 
+                          type="number" 
+                          min="100" 
+                          step="100"
+                          value={adBudget} 
+                          onChange={e => setAdBudget(e.target.value)} 
+                          className="w-full bg-transparent px-4 py-2 outline-none text-sm font-medium"
+                          placeholder="500"
+                        />
+                      </div>
+                      <p className="text-xs text-muted mt-1">Minimum: ৳100</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-1 pl-1">Duration (Days)</label>
+                      <div className="neomorph-inset rounded-xl p-1">
+                        <input 
+                          type="number" 
+                          min="1" 
+                          max="365"
+                          value={durationDays} 
+                          onChange={e => setDurationDays(e.target.value)} 
+                          className="w-full bg-transparent px-4 py-2 outline-none text-sm font-medium"
+                          placeholder="30"
+                        />
+                      </div>
+                      <p className="text-xs text-muted mt-1">Max: 365 days</p>
+                    </div>
+
+                    <div className="bg-orange-100 border border-orange-300 rounded-xl p-4 mt-6">
+                      <p className="text-sm font-bold text-orange-900">Total Cost: ৳{(Number(adBudget) || 0).toFixed(0)}</p>
+                      <p className="text-xs text-orange-800 mt-1">This is an estimate. Actual charges apply daily.</p>
+                    </div>
+
+                    <div className="flex gap-3 mt-8">
+                       <button
+                         type="button"
+                         onClick={() => setPromoteProductId(null)}
+                         className="flex-1 py-3 font-semibold rounded-xl bg-slate-200 text-slate-700 active:scale-95 transition-transform"
+                       >
+                         Cancel
+                       </button>
+                       <button
+                         type="button"
+                         onClick={() => handlePromoteProduct(promoteProductId)}
+                         disabled={promotingId === promoteProductId}
+                         className="flex-1 py-3 font-semibold rounded-xl bg-orange-500 text-white active:scale-95 transition-transform disabled:opacity-50"
+                       >
+                         {promotingId === promoteProductId ? 'Promoting...' : 'Promote Now'}
+                       </button>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        )}
+
         {/* Products Grid */}
         <h3 className="text-xl font-bold mb-4 tracking-tight">Products ({products.length})</h3>
         
@@ -336,7 +459,18 @@ export default function StoreView() {
                     <div className="mt-4 pt-3 border-t border-slate-200">
                        <div className="text-lg font-extrabold text-primary">TK {p.price.toFixed(2)}</div>
                        <div className="text-xs text-muted font-semibold mt-1">Stock: {p.stockQuantity ?? 0}</div>
+                       {(p as any).isPromoted && (
+                         <div className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded mt-2">
+                           ✨ Promoted
+                         </div>
+                       )}
                     </div>
+                    <button 
+                       onClick={() => setPromoteProductId(p.id)}
+                       className="mt-3 w-full bg-orange-500 text-white py-2 rounded-xl text-sm font-bold neomorph-raised active:neomorph-inset transition-all"
+                    >
+                       Promote Product
+                    </button>
                  </div>
               ))}
            </div>

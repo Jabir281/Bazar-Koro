@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
 import Order from '../models/Order.js';
 import { Cart } from '../models/Cart.js';
+import { computeSummary } from './cart.js';
 import { sendDigitalReceipt } from '../utils/sendReceipt.js'; // Import your new mailman!
 import { User } from '../models/User.js';
 
@@ -27,6 +28,11 @@ router.post("/create-checkout-session", requireAuth, async (req: AuthedRequest, 
     if (!cart?.items?.length) {
       return res.status(400).json({ error: 'Your cart is empty' });
     }
+    
+    // Calculate accurate dynamic delivery charge
+    const summary = await computeSummary(cart.items, req.user.id);
+    const deliveryCharge = summary.deliveryCharge;
+    const deliveryDistanceKm = (summary as any).deliveryDistanceKm || 0;
 
     const lineItems = cart.items.map((item) => ({
       name: item.name,
@@ -44,28 +50,47 @@ router.post("/create-checkout-session", requireAuth, async (req: AuthedRequest, 
     const commission = Math.round(totalAmount * 0.1);
     const sellerAmount = totalAmount - commission;
 
-    console.log("💰 Payment Breakdown:", { totalAmount, commission, sellerAmount });
+    console.log("💰 Payment Breakdown:", { totalAmount, commission, sellerAmount, deliveryCharge, deliveryDistanceKm });
 
     // Create the order as 'placed' (which means unpaid for now)
     const order = await Order.create({
       buyerId: new mongoose.Types.ObjectId(req.user.id),
       lines: cart.items,
+      deliveryFee: deliveryCharge, // Record it in the order
+      deliveryDistanceKm: deliveryDistanceKm,
       status: 'placed',
     });
+
+    const stripeLineItems: any[] = lineItems.map((item) => ({
+      price_data: {
+        currency: "bdt",
+        product_data: {
+          name: item.name,
+        },
+        unit_amount: item.price * 100,
+      },
+      quantity: item.quantity,
+    }));
+
+    // Add Delivery Charge as an extra item
+    if (deliveryCharge > 0) {
+      stripeLineItems.push({
+        price_data: {
+          currency: "bdt",
+          product_data: {
+            name: "Delivery Charge",
+            description: "Distance-based dynamic delivery fee",
+          },
+          unit_amount: deliveryCharge * 100, // Stripe uses cents/poisha
+        },
+        quantity: 1,
+      });
+    }
 
     const session = await stripe.checkout.sessions.create({
       customer_email: req.user.email, // Stripe will use this for its own receipts
       payment_method_types: ["card"],
-      line_items: lineItems.map((item) => ({
-        price_data: {
-          currency: "bdt",
-          product_data: {
-            name: item.name,
-          },
-          unit_amount: item.price * 100,
-        },
-        quantity: item.quantity,
-      })),
+      line_items: stripeLineItems,
       mode: "payment",
       invoice_creation: {
         enabled: true,
@@ -129,9 +154,11 @@ router.post("/payment-success", requireAuth, async (req: AuthedRequest, res: Res
     const buyer = await User.findById(order.buyerId);
     if (buyer && buyer.email) {
       try {
+        const itemsTotal = order.lines.reduce((sum, item) => sum + item.unitPrice * item.qty, 0);
+        const orderDeliveryFee = (order as any).deliveryFee || 0;
         await sendDigitalReceipt(buyer.email, {
           _id: order._id,
-          totalAmount: order.lines.reduce((sum, item) => sum + item.unitPrice * item.qty, 0)
+          totalAmount: itemsTotal + orderDeliveryFee
         });
         console.log("[payment-success] Receipt email sent to:", buyer.email);
       } catch (emailErr) {
@@ -142,7 +169,7 @@ router.post("/payment-success", requireAuth, async (req: AuthedRequest, res: Res
     }
 
     res.json({ success: true, message: "Payment confirmed, cart emptied, and receipt sent!" });
-  } catch (error) {
+  } catch (error: any) {
     console.error("[payment-success] Uncaught error:", error);
     res.status(500).json({ error: error?.message || "Failed to process success" });
   }
