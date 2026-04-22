@@ -789,13 +789,21 @@ export default function Dashboard() {
               </button>
             </div>
 
-            <div className="neomorph-inset rounded-3xl p-8 flex items-center justify-center min-h-[40vh] text-muted">
-              <div className="text-center">
-                <TrendingUp className="w-16 h-16 mx-auto mb-4 text-primary/50" />
-                <h3 className="text-lg font-bold mb-2">Marketing Tools</h3>
-                <p>Send promotional emails to specific customers or run marketing campaigns.</p>
-                <p className="text-sm mt-2">Use the "Send Promo Email" button above to get started.</p>
-              </div>
+            
+          </div>
+        )}
+
+        {user.activeRole === "marketer" && (
+          <div className="space-y-6">
+            
+            <div className="neomorph-inset rounded-3xl p-8 flex flex-col items-center justify-center min-h-[40vh] text-muted gap-4">
+              <p>View affiliate campaigns and promotional content stats.</p>
+              <button 
+                onClick={() => navigate("/marketer/analytics")}
+                className="px-6 py-3 bg-primary text-white rounded-xl neomorph-raised hover:neomorph-inset active:neomorph-inset transition-all font-bold"
+              >
+                View Analytics
+              </button>
             </div>
           </div>
         )}
