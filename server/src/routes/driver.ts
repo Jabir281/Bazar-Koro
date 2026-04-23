@@ -16,6 +16,10 @@ const updateLocationSchema = z.object({
   address: z.string().optional(),
 });
 
+const driverGoalSchema = z.object({
+  goal: z.number().min(0, "Goal must be a positive number"),
+});
+
 // Delivery fee constants
 const DELIVERY_BASE_FEE = 40; // Base delivery fee in Taka
 const DELIVERY_PER_KM_FEE = 10; // Fee per kilometer in Taka
@@ -27,7 +31,6 @@ const DELIVERY_PER_KM_FEE = 10; // Fee per kilometer in Taka
 function calculateDeliveryFee(distanceKm: number): number {
   return DELIVERY_BASE_FEE + distanceKm * DELIVERY_PER_KM_FEE;
 }
-
 export const driverOverviewRoute = async (req: AuthedRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
@@ -35,7 +38,7 @@ export const driverOverviewRoute = async (req: AuthedRequest, res: Response) => 
       return res.status(403).json({ error: 'Only drivers can access this endpoint' });
     }
 
-    const user = await User.findById(req.user.id).select('isOnline currentLocation');
+    const user = await User.findById(req.user.id).select('isOnline currentLocation driverDailyGoal');
     if (!user) return res.status(404).json({ error: 'Driver not found' });
 
     const driverObjectId = new mongoose.Types.ObjectId(req.user.id);
@@ -82,7 +85,8 @@ export const driverOverviewRoute = async (req: AuthedRequest, res: Response) => 
       'delivery.driverId': driverObjectId,
       status: 'delivered',
       updatedAt: { $gte: todayStart, $lt: todayEnd }
-    });
+    })
+      .select('-delivery.deliveryPin');
 
     // Calculate daily earnings based on delivery fee (average of ~70 per delivery)
     // Formula: base fee (40) + average distance (3km) * per-km fee (10) = 70 tk
@@ -156,6 +160,7 @@ export const driverOverviewRoute = async (req: AuthedRequest, res: Response) => 
       activeDeliveries,
       availableOrders: enrichedOrders,
       driverHasLocation: hasDriverLocation,
+      driverDailyGoal: user.driverDailyGoal || 0,
     });
   } catch (error) {
     console.error('Driver Overview Error:', error);
@@ -220,5 +225,30 @@ export const updateDriverLocationRoute = async (req: AuthedRequest, res: Respons
   } catch (error) {
     console.error('Update Driver Location Error:', error);
     return res.status(500).json({ error: 'Failed to update driver location' });
+  }
+};
+
+export const setDriverGoalRoute = async (req: AuthedRequest, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+    if (req.user.activeRole !== 'driver') {
+      return res.status(403).json({ error: 'Only drivers can update their goal' });
+    }
+
+    const parsed = driverGoalSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { driverDailyGoal: parsed.data.goal },
+      { new: true, runValidators: true }
+    ).select('driverDailyGoal');
+
+    if (!user) return res.status(404).json({ error: 'Driver not found' });
+
+    return res.json({ driverDailyGoal: user.driverDailyGoal });
+  } catch (error) {
+    console.error('Set Driver Goal Error:', error);
+    return res.status(500).json({ error: 'Failed to update driver goal' });
   }
 };

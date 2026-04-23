@@ -11,6 +11,11 @@ export interface SearchFilters {
   limit?: number;
 }
 
+export interface SearchSuggestion {
+  _id: string;
+  name: string;
+}
+
 export interface Product {
   _id: string;
   name: string;

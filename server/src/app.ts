@@ -16,13 +16,14 @@ import {
   listStoreOrdersRoute, 
   updateOrderStatusRoute 
 } from './routes/orders.js';
-import { driverOverviewRoute, setDriverStatusRoute, updateDriverLocationRoute } from './routes/driver.js';
+import { driverOverviewRoute, setDriverStatusRoute, updateDriverLocationRoute, setDriverGoalRoute } from './routes/driver.js';
 import { getAdminStoresRoute, getAdminStoreRoute, updateStoreStatusRoute, updateStoreActiveRoute, deleteStoreRoute, createAdminRoute } from './routes/admin.js';
 import { addReviewRoute, getStoreReviewsRoute, getProductReviewsRoute } from './routes/reviews.js';
 import { promoteProductRoute, getAdStatusRoute, cancelPromotionRoute, getActivePromotionsRoute } from './routes/promotions.js';
 
 // Order payments
 import paymentRoutes from './routes/payment.js'
+import { getActiveAdRoute, trackImpressionRoute, trackClickRoute, uploadAdRoute, getAdAnalyticsRoute } from './routes/ads.js';
 
 export function createApp() {
   const app = express()
@@ -72,6 +73,7 @@ export function createApp() {
   app.get('/api/driver/overview', requireAuth, driverOverviewRoute)
   app.post('/api/driver/status', requireAuth, setDriverStatusRoute)
   app.post('/api/driver/location', requireAuth, updateDriverLocationRoute)
+  app.post('/api/driver/goal', requireAuth, setDriverGoalRoute)
 
   // Stores and Products
   app.get('/api/stores/all', requireAuth, getAllStoresRoute as express.RequestHandler)
@@ -88,13 +90,21 @@ export function createApp() {
   app.delete('/api/products/:productId/promote', requireAuth, cancelPromotionRoute as express.RequestHandler)
   app.get('/api/promotions/active', requireAuth, getActivePromotionsRoute as express.RequestHandler)
 
-  // Admin Routes
+  // Admin
   app.get('/api/admin/stores', requireAuth, getAdminStoresRoute as express.RequestHandler)
   app.get('/api/admin/stores/:id', requireAuth, getAdminStoreRoute as express.RequestHandler)
   app.patch('/api/admin/stores/:id/status', requireAuth, updateStoreStatusRoute as express.RequestHandler)
   app.patch('/api/admin/stores/:id/active', requireAuth, updateStoreActiveRoute as express.RequestHandler)
   app.delete('/api/admin/stores/:id', requireAuth, deleteStoreRoute as express.RequestHandler)
   app.post('/api/admin/admins', requireAuth, createAdminRoute as express.RequestHandler)
+
+  // Ads
+  app.get('/api/ads/active', getActiveAdRoute as express.RequestHandler)
+  app.post('/api/ads/:id/impression', trackImpressionRoute as express.RequestHandler)
+  app.post('/api/ads/:id/click', trackClickRoute as express.RequestHandler)
+  app.post('/api/ads', requireAuth, uploadAdRoute as express.RequestHandler)
+  app.get('/api/ads/analytics', requireAuth, getAdAnalyticsRoute as express.RequestHandler)
+
 
   return app
 }

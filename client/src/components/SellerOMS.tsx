@@ -104,16 +104,16 @@ export function SellerOMS({ storeId }: { storeId: string }) {
 
             {/* Seller Actions */}
             <div className="flex gap-4">
-              {order.status === 'placed' && (
+              {(order.status === 'placed' || order.status === 'paid') && (
                 <>
-                  <button 
-                    onClick={() => updateStatus(order._id, 'accepted')} 
+                  <button
+                    onClick={() => updateStatus(order._id, 'accepted')}
                     className="flex-1 py-2.5 rounded-xl bg-primary text-white font-bold neomorph-raised active:neomorph-inset transition-all"
                   >
                     Accept
                   </button>
-                  <button 
-                    onClick={() => updateStatus(order._id, 'rejected')} 
+                  <button
+                    onClick={() => updateStatus(order._id, 'rejected')}
                     className="flex-1 py-2.5 rounded-xl text-red-500 font-bold neomorph-raised active:neomorph-inset transition-all"
                   >
                     Reject

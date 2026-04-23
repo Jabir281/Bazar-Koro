@@ -21,6 +21,7 @@ const orderSchema = new mongoose.Schema({
   deliveryDistanceKm: { type: Number, default: 0 },
   delivery: {
     driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    deliveryPin: { type: String },
     proof: {
       pinLast4: String,
       photoUrl: String

@@ -16,6 +16,7 @@ export interface IUser {
     coordinates: [number, number]; // [lng, lat]
   };
   lastLocationUpdate?: Date;
+  driverDailyGoal?: number;
 }
 
 const userSchema = new mongoose.Schema<IUser>(
@@ -42,6 +43,7 @@ const userSchema = new mongoose.Schema<IUser>(
       }
     },
     lastLocationUpdate: { type: Date, default: null },
+    driverDailyGoal: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

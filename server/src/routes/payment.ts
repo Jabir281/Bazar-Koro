@@ -52,6 +52,8 @@ router.post("/create-checkout-session", requireAuth, async (req: AuthedRequest, 
 
     console.log("💰 Payment Breakdown:", { totalAmount, commission, sellerAmount, deliveryCharge, deliveryDistanceKm });
 
+    const pin = Math.floor(1000 + Math.random() * 9000).toString();
+
     // Create the order as 'placed' (which means unpaid for now)
     const order = await Order.create({
       buyerId: new mongoose.Types.ObjectId(req.user.id),
@@ -59,6 +61,9 @@ router.post("/create-checkout-session", requireAuth, async (req: AuthedRequest, 
       deliveryFee: deliveryCharge, // Record it in the order
       deliveryDistanceKm: deliveryDistanceKm,
       status: 'placed',
+      delivery: {
+        deliveryPin: pin
+      }
     });
 
     const stripeLineItems: any[] = lineItems.map((item) => ({

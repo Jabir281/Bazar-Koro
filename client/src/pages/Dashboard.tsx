@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { LogOut, Plus, ShoppingBag, Store, TrendingUp, User, Shield, Truck, Star } from "lucide-react";
+import { LogOut, Plus, ShoppingBag, Store, TrendingUp, User, Shield, Truck, Star, Megaphone } from "lucide-react";
 import { SellerOMS } from '../components/SellerOMS'; // <-- Imported here!
 
 type UserRole = "buyer" | "seller" | "driver" | "marketer" | "admin";
@@ -36,8 +36,11 @@ interface BuyerOrderLine {
 
 interface BuyerOrder {
   _id: string;
-  status: 'placed' | 'accepted' | 'rejected' | 'ready_for_pickup' | 'claimed' | 'at_store' | 'picked_up' | 'on_the_way' | 'delivered';
+  status: 'placed' | 'paid' | 'accepted' | 'rejected' | 'ready_for_pickup' | 'claimed' | 'at_store' | 'picked_up' | 'on_the_way' | 'delivered';
   lines: BuyerOrderLine[];
+  delivery?: {
+    deliveryPin?: string;
+  };
   createdAt: string;
   review?: { rating: number, comment: string } | null;
 }
@@ -72,6 +75,7 @@ interface DriverOverview {
   completedTrips: number;
   activeDeliveries: DriverOrder[];
   availableOrders: DriverOrder[];
+  driverDailyGoal?: number;
 }
 
 export default function Dashboard() {
@@ -88,6 +92,10 @@ export default function Dashboard() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [driverOverview, setDriverOverview] = useState<DriverOverview | null>(null);
+  
+  const [driverGoalInput, setDriverGoalInput] = useState('');
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
+  const [driverPinInputs, setDriverPinInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchUserData();
@@ -236,7 +244,9 @@ export default function Dashboard() {
       if (resolvedRole === "driver") {
         const driverRes = await fetch("/api/driver/overview", { headers: { "Authorization": `Bearer ${token}`, "x-active-role": "driver" } });
         if (driverRes.ok) {
-          setDriverOverview(await driverRes.json());
+          const data = await driverRes.json();
+          setDriverOverview(data);
+          setDriverGoalInput(data.driverDailyGoal?.toString() || '');
         }
       } else {
         setDriverOverview(null);
@@ -388,13 +398,24 @@ export default function Dashboard() {
                 <option value="seller">Seller Mode</option>
                 <option value="driver">Driver Mode</option>
                 <option value="marketer">Marketer Mode</option>
+                {user.roles.includes("admin") && <option value="admin">Admin Mode</option>}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-primary">
                 <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
               </div>
             </div>
 
-            <button 
+            {user.activeRole === "marketer" && (
+              <button
+                onClick={() => navigate("/marketer/create-ad")}
+                title="Create Ad Campaign"
+                className="flex items-center justify-center w-11 h-11 rounded-xl neomorph-raised active:neomorph-inset transition-all text-primary"
+              >
+                <Megaphone className="w-5 h-5" />
+              </button>
+            )}
+
+            <button
               onClick={handleLogout}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl neomorph-raised active:neomorph-inset transition-all font-semibold text-red-500 hover:text-red-600"
             >
@@ -489,6 +510,17 @@ export default function Dashboard() {
                           </div>
                         ))}
                       </div>
+                      {order.delivery?.deliveryPin && order.status !== 'delivered' && order.status !== 'rejected' && (
+                        <div className="mt-4 pt-4 border-t border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 text-sm text-muted">
+                            <Shield className="w-4 h-4 text-primary" />
+                            Share this PIN with your driver at handoff:
+                          </div>
+                          <div className="px-4 py-2 bg-primary/10 text-primary font-mono font-bold tracking-widest rounded-xl text-lg text-center">
+                            {order.delivery.deliveryPin}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -569,7 +601,7 @@ export default function Dashboard() {
 
         {user.activeRole === "driver" && driverOverview && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="neomorph-raised rounded-3xl p-6 flex flex-col gap-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
@@ -602,14 +634,82 @@ export default function Dashboard() {
                 <p className="text-sm text-muted">Toggle your availability to accept deliveries when you are ready to work.</p>
               </div>
 
-              <div className="neomorph-raised rounded-3xl p-6">
-                <p className="text-sm font-semibold uppercase tracking-wider text-muted">Daily Earnings</p>
-                <p className="text-3xl font-extrabold text-primary">৳{driverOverview.dailyEarnings.toFixed(2)}</p>
+              <div className="neomorph-raised rounded-3xl p-6 md:col-span-2">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold uppercase tracking-wider text-muted">Daily Earnings & Goal</p>
+                  {!isEditingGoal ? (
+                    <button 
+                      onClick={() => setIsEditingGoal(true)}
+                      className="text-xs font-bold text-primary hover:opacity-80 transition-colors"
+                    >
+                      {driverOverview.driverDailyGoal ? 'Edit Goal' : 'Set Goal'}
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="number" 
+                        value={driverGoalInput}
+                        onChange={(e) => setDriverGoalInput(e.target.value)}
+                        className="w-20 px-2 py-1 neomorph-inset rounded-lg bg-transparent outline-none text-sm font-bold text-main"
+                        placeholder="e.g. 500"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={async () => {
+                          const token = localStorage.getItem('token');
+                          if (!token) return;
+                          const res = await fetch('/api/driver/goal', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`,
+                              'x-active-role': 'driver',
+                            },
+                            body: JSON.stringify({ goal: Number(driverGoalInput) || 0 }),
+                          });
+                          if (res.ok) {
+                            const data = await res.json();
+                            setDriverOverview(prev => prev ? { ...prev, driverDailyGoal: data.driverDailyGoal } : prev);
+                            setIsEditingGoal(false);
+                          }
+                        }}
+                        className="text-xs font-bold bg-primary text-white px-2 py-1 rounded-lg"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex items-end gap-3 mb-4">
+                  <p className="text-4xl font-extrabold text-primary">৳{driverOverview.dailyEarnings.toFixed(2)}</p>
+                  {!!driverOverview.driverDailyGoal && (
+                    <p className="text-sm font-medium text-muted pb-1 border-l border-primary/20 pl-3">
+                      / ৳{driverOverview.driverDailyGoal.toFixed(2)} 
+                      <span className="text-[0.65rem] ml-2 bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Today's Target</span>
+                    </p>
+                  )}
+                </div>
+
+                {!!driverOverview.driverDailyGoal && driverOverview.driverDailyGoal > 0 && (
+                  <div className="relative w-full h-4 neomorph-inset rounded-full overflow-hidden p-0.5">
+                    <div 
+                      className="h-full bg-gradient-to-r from-primary to-blue-400 rounded-full transition-all duration-1000 ease-out shadow-sm"
+                      style={{ width: `${Math.min(100, (driverOverview.dailyEarnings / driverOverview.driverDailyGoal) * 100)}%` }}
+                    />
+                  </div>
+                )}
+                {!!driverOverview.driverDailyGoal && driverOverview.driverDailyGoal > 0 && driverOverview.dailyEarnings >= driverOverview.driverDailyGoal && (
+                  <p className="text-xs font-bold text-green-500 mt-3 flex items-center gap-1 animate-pulse">
+                    <TrendingUp className="w-3 h-3" /> Goal Reached! Outstanding performance!
+                  </p>
+                )}
+                <p className="text-xs text-muted mt-3">Only completed delivery fees are counted (৳120 per trip).</p>
               </div>
 
-              <div className="neomorph-raised rounded-3xl p-6">
+              <div className="neomorph-raised rounded-3xl p-6 md:col-span-1 flex flex-col justify-center">
                 <p className="text-sm font-semibold uppercase tracking-wider text-muted">Completed Trips</p>
-                <p className="text-3xl font-extrabold text-primary">{driverOverview.completedTrips}</p>
+                <p className="text-3xl font-extrabold text-primary pt-2">{driverOverview.completedTrips}</p>
               </div>
             </div>
 
@@ -631,6 +731,41 @@ export default function Dashboard() {
                         ? { label: 'Mark Delivered', nextStatus: 'delivered' }
                         : null;
 
+                      const advanceOrder = async (extraBody: Record<string, unknown> = {}) => {
+                        if (!nextAction) return;
+                        const token = localStorage.getItem('token');
+                        if (!token) return;
+                        const res = await fetch(`/api/orders/${order._id}/status`, {
+                          method: 'PATCH',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                            'x-active-role': 'driver',
+                          },
+                          body: JSON.stringify({ status: nextAction.nextStatus, ...extraBody }),
+                        });
+                        if (!res.ok) {
+                          const data = await res.json().catch(() => ({}));
+                          alert(data.error || 'Failed to update order.');
+                          return;
+                        }
+                        const overviewRes = await fetch('/api/driver/overview', {
+                          headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'x-active-role': 'driver',
+                          },
+                        });
+                        if (overviewRes.ok) setDriverOverview(await overviewRes.json());
+                        setDriverPinInputs((prev) => {
+                          const next = { ...prev };
+                          delete next[order._id];
+                          return next;
+                        });
+                      };
+
+                      const isDeliverStep = nextAction?.nextStatus === 'delivered';
+                      const pinValue = driverPinInputs[order._id] || '';
+
                       return (
                         <div key={order._id} className="border border-primary/10 rounded-3xl p-4 neomorph-inset">
                           <div className="flex items-center justify-between gap-3 mb-3">
@@ -645,30 +780,9 @@ export default function Dashboard() {
                                 </p>
                               )}
                             </div>
-                            {nextAction && (
+                            {nextAction && !isDeliverStep && (
                               <button
-                                onClick={async () => {
-                                  const token = localStorage.getItem('token');
-                                  if (!token) return;
-                                  const res = await fetch(`/api/orders/${order._id}/status`, {
-                                    method: 'PATCH',
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                      'Authorization': `Bearer ${token}`,
-                                      'x-active-role': 'driver',
-                                    },
-                                    body: JSON.stringify({ status: nextAction.nextStatus }),
-                                  });
-                                  if (res.ok) {
-                                    const overviewRes = await fetch('/api/driver/overview', {
-                                      headers: {
-                                        'Authorization': `Bearer ${token}`,
-                                        'x-active-role': 'driver',
-                                      },
-                                    });
-                                    if (overviewRes.ok) setDriverOverview(await overviewRes.json());
-                                  }
-                                }}
+                                onClick={() => advanceOrder()}
                                 className="mt-2 w-full bg-primary text-white rounded-xl py-2 font-semibold neomorph-raised active:neomorph-inset transition-all"
                               >
                                 {nextAction.label}
@@ -693,6 +807,44 @@ export default function Dashboard() {
                             <div className="flex justify-between items-center pt-2">
                               <span className="font-semibold text-primary">Delivery Fee:</span>
                               <span className="text-lg font-bold text-green-600">৳{order.deliveryFee}</span>
+                            </div>
+                          )}
+
+                          {isDeliverStep && (
+                            <div className="mt-4 pt-4 border-t border-primary/20 space-y-2">
+                              <label className="text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
+                                <Shield className="w-3 h-3 text-primary" />
+                                Enter buyer's 4-digit PIN to complete delivery
+                              </label>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  maxLength={4}
+                                  value={pinValue}
+                                  onChange={(e) =>
+                                    setDriverPinInputs((prev) => ({
+                                      ...prev,
+                                      [order._id]: e.target.value.replace(/\D/g, '').slice(0, 4),
+                                    }))
+                                  }
+                                  placeholder="••••"
+                                  className="flex-1 neomorph-inset rounded-xl px-4 py-2 bg-transparent outline-none font-mono tracking-[0.5em] text-center text-lg text-main"
+                                />
+                                <button
+                                  onClick={() => {
+                                    if (pinValue.length !== 4) {
+                                      alert('PIN must be 4 digits.');
+                                      return;
+                                    }
+                                    advanceOrder({ proof: { pinLast4: pinValue } });
+                                  }}
+                                  disabled={pinValue.length !== 4}
+                                  className="px-4 py-2 bg-primary text-white rounded-xl font-semibold neomorph-raised active:neomorph-inset transition-all disabled:opacity-50"
+                                >
+                                  {nextAction!.label}
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -796,8 +948,23 @@ export default function Dashboard() {
         {user.activeRole === "marketer" && (
           <div className="space-y-6">
             <h2 className="text-2xl font-extrabold tracking-tight mb-4">Marketing Dashboard</h2>
-            <div className="neomorph-inset rounded-3xl p-8 flex items-center justify-center min-h-[40vh] text-muted">
-              View affiliate campaigns and promotional content stats. (Coming soon)
+            <div className="neomorph-inset rounded-3xl p-8 flex flex-col items-center justify-center min-h-[40vh] text-muted gap-4">
+              <p>View affiliate campaigns and promotional content stats.</p>
+              <button 
+                onClick={() => navigate("/marketer/analytics")}
+                className="px-6 py-3 bg-primary text-white rounded-xl neomorph-raised hover:neomorph-inset active:neomorph-inset transition-all font-bold"
+              >
+                View Analytics
+              </button>
+            </div>
+          </div>
+        )}
+
+        {user.activeRole === "admin" && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-extrabold tracking-tight mb-4">Admin Dashboard</h2>
+            <div className="neomorph-inset rounded-3xl p-6 text-muted text-sm">
+              Use the Admin Operations panel at <button onClick={() => navigate("/admin")} className="text-primary font-bold underline">/admin</button> to manage stores and accounts.
             </div>
           </div>
         )}
