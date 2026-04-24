@@ -11,6 +11,7 @@ const storeSchema = z.object({
   ownerName: z.string().min(1),
   description: z.string().optional(),
   operatingHours: z.string().optional(),
+  imageUrl: z.string().optional(),
   location: z.object({
     city: z.string().min(1),
     road: z.string().min(1),

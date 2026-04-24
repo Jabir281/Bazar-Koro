@@ -1,8 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { MapPin, X, AlertCircle } from 'lucide-react';
 
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  city?: string;
+  road?: string;
+  address?: string;
+}
+
 interface MapLocationPickerProps {
-  onSelectLocation: (coords: { latitude: number; longitude: number }) => void;
+  onSelectLocation: (data: LocationData) => void;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -12,11 +20,13 @@ export default function MapLocationPicker({ onSelectLocation, isOpen, onClose }:
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const [selectedCoords, setSelectedCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [reverseGeoResult, setReverseGeoResult] = useState<{ city: string; road: string; address: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualLat, setManualLat] = useState<string>('23.8103');
   const [manualLng, setManualLng] = useState<string>('90.4125');
+  const [geocoding, setGeocoding] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -24,6 +34,7 @@ export default function MapLocationPicker({ onSelectLocation, isOpen, onClose }:
     setLoading(true);
     setError(null);
     setMapLoaded(false);
+    setReverseGeoResult(null);
     loadGoogleMaps();
   }, [isOpen]);
 
@@ -56,6 +67,32 @@ export default function MapLocationPicker({ onSelectLocation, isOpen, onClose }:
     };
 
     document.head.appendChild(script);
+  };
+
+  const reverseGeocode = async (lat: number, lng: number) => {
+    setGeocoding(true);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+      const data = await res.json();
+      
+      if (data && data.address) {
+        const addr = data.address;
+        const city = addr.city || addr.town || addr.village || addr.county || addr.state_district || '';
+        const road = addr.road || addr.suburb || addr.neighbourhood || '';
+        const fullAddress = data.display_name || '';
+
+        setReverseGeoResult({ city, road, address: fullAddress });
+        console.log('Reverse geocoded via Nominatim:', { city, road, address: fullAddress });
+      } else {
+        console.warn('Geocode failed, no address block found');
+        setReverseGeoResult(null);
+      }
+    } catch (err) {
+      console.error('Geocoding fetch error:', err);
+      setReverseGeoResult(null);
+    } finally {
+      setGeocoding(false);
+    }
   };
 
   const initializeMap = () => {
@@ -102,11 +139,15 @@ export default function MapLocationPicker({ onSelectLocation, isOpen, onClose }:
       markerRef.current = marker;
       setSelectedCoords({ latitude: defaultCenter.lat, longitude: defaultCenter.lng });
 
+      // Initial reverse geocode
+      reverseGeocode(defaultCenter.lat, defaultCenter.lng);
+
       // Update on marker drag
       marker.addListener('dragend', () => {
         const pos = marker.getPosition();
         const newCoords = { latitude: pos.lat(), longitude: pos.lng() };
         setSelectedCoords(newCoords);
+        reverseGeocode(pos.lat(), pos.lng());
         console.log('Marker moved to:', newCoords);
       });
 
@@ -115,6 +156,7 @@ export default function MapLocationPicker({ onSelectLocation, isOpen, onClose }:
         const newCoords = { latitude: event.latLng.lat(), longitude: event.latLng.lng() };
         setSelectedCoords(newCoords);
         marker.setPosition(event.latLng);
+        reverseGeocode(event.latLng.lat(), event.latLng.lng());
         console.log('Map clicked, location set to:', newCoords);
       });
 
@@ -152,11 +194,26 @@ export default function MapLocationPicker({ onSelectLocation, isOpen, onClose }:
     const newCoords = { latitude: lat, longitude: lng };
     setSelectedCoords(newCoords);
     setError(null);
+
+    // Also reverse geocode manual coordinates
+    reverseGeocode(lat, lng);
+
+    // Move map and marker if available
+    if (mapRef.current && markerRef.current) {
+      const pos = { lat, lng };
+      mapRef.current.setCenter(pos);
+      markerRef.current.setPosition(pos);
+    }
   };
 
   const handleConfirm = () => {
     if (selectedCoords) {
-      onSelectLocation(selectedCoords);
+      onSelectLocation({
+        ...selectedCoords,
+        city: reverseGeoResult?.city,
+        road: reverseGeoResult?.road,
+        address: reverseGeoResult?.address,
+      });
       onClose();
     }
   };
@@ -214,7 +271,7 @@ export default function MapLocationPicker({ onSelectLocation, isOpen, onClose }:
                 <ul className="text-xs text-muted space-y-1">
                   <li>✓ <strong>Click</strong> anywhere on map to place marker</li>
                   <li>✓ <strong>Drag</strong> marker to adjust location</li>
-                  <li>✓ See coordinates update in real-time</li>
+                  <li>✓ Address fields auto-fill from location</li>
                 </ul>
               </div>
             )}
@@ -230,6 +287,9 @@ export default function MapLocationPicker({ onSelectLocation, isOpen, onClose }:
                     <span className="font-bold">Lng:</span> {selectedCoords.longitude.toFixed(6)}
                   </p>
                 </div>
+                {geocoding && (
+                  <p className="text-xs text-green-600 mt-2 animate-pulse">Looking up address...</p>
+                )}
               </div>
             )}
 
@@ -252,6 +312,27 @@ export default function MapLocationPicker({ onSelectLocation, isOpen, onClose }:
                     <p className="font-mono text-lg font-bold text-green-900">{selectedCoords.longitude.toFixed(6)}</p>
                   </div>
                 </div>
+                {/* Reverse Geocoded Address Preview */}
+                {reverseGeoResult && (
+                  <div className="mt-3 bg-white rounded-lg p-3 border-2 border-emerald-200">
+                    <p className="text-xs text-emerald-700 font-bold uppercase mb-2">📍 Detected Address</p>
+                    {reverseGeoResult.city && (
+                      <p className="text-xs text-emerald-900"><span className="font-bold">City:</span> {reverseGeoResult.city}</p>
+                    )}
+                    {reverseGeoResult.road && (
+                      <p className="text-xs text-emerald-900 mt-1"><span className="font-bold">Road:</span> {reverseGeoResult.road}</p>
+                    )}
+                    {reverseGeoResult.address && (
+                      <p className="text-xs text-emerald-900 mt-1 line-clamp-2"><span className="font-bold">Address:</span> {reverseGeoResult.address}</p>
+                    )}
+                  </div>
+                )}
+                {geocoding && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <div className="w-3 h-3 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-xs text-emerald-600 font-semibold">Looking up address...</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -327,6 +408,7 @@ export default function MapLocationPicker({ onSelectLocation, isOpen, onClose }:
                       setManualLng(loc.lng.toString());
                       const coords = { latitude: loc.lat, longitude: loc.lng };
                       setSelectedCoords(coords);
+                      reverseGeocode(loc.lat, loc.lng);
                       if (mapRef.current && markerRef.current) {
                         mapRef.current.setCenter(coords);
                         markerRef.current.setPosition(coords);

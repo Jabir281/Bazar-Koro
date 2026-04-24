@@ -19,6 +19,7 @@ export interface IStore {
   status: 'pending' | 'approved' | 'rejected';
   isActive: boolean;
   documents: string[];
+  imageUrl?: string;
 }
 
 const storeSchema = new mongoose.Schema<IStore>(
@@ -36,6 +37,7 @@ const storeSchema = new mongoose.Schema<IStore>(
     },
     description: { type: String },
     operatingHours: { type: String },
+    imageUrl: { type: String },
     type: { type: String, enum: ['pharmacy', 'general_store'], required: true },
     sellerId: { type: String, required: true },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
