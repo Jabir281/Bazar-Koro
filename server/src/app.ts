@@ -1,5 +1,7 @@
 import express from 'express'
 import cors from 'cors'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 import { healthRoute } from './routes/health.js'
 import { addRoleRoute, loginRoute, meRoute, registerRoute } from './routes/auth.js'
@@ -105,6 +107,22 @@ export function createApp() {
   app.post('/api/ads', requireAuth, uploadAdRoute as express.RequestHandler)
   app.get('/api/ads/analytics', requireAuth, getAdAnalyticsRoute as express.RequestHandler)
 
+  // In production, serve the built React app from client/dist.
+  // Compiled file lives at server/dist/app.js, so client/dist is two levels up.
+  if (process.env.NODE_ENV === 'production') {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url))
+    const clientDist = path.resolve(__dirname, '../../client/dist')
+
+    app.use(express.static(clientDist))
+
+    // SPA fallback: any non-API GET request returns index.html so client-side
+    // routing (react-router) works on direct URL hits and refreshes.
+    app.use((req, res, next) => {
+      if (req.method !== 'GET') return next()
+      if (req.path.startsWith('/api')) return next()
+      res.sendFile(path.join(clientDist, 'index.html'))
+    })
+  }
 
   return app
 }
