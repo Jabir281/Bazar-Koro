@@ -8,10 +8,6 @@ export default function Landing() {
       <nav className="w-full sticky top-0 z-50 bg-surface flex justify-between items-center px-8 py-4 shadow-[6px_6px_12px_rgba(0,0,0,0.08),-6px_-6px_12px_rgba(255,255,255,0.6)]">
         <div className="text-2xl font-bold text-primary tracking-tight">Bazar Koro</div>
         <div className="hidden md:flex gap-8 items-center font-medium">
-          <Link to="/" className="text-primary border-b-2 border-primary pb-1">Marketplace</Link>
-          {/* UPDATED: Nav link for Marketers */}
-          <Link to="/marketer/dashboard" className="text-muted cursor-pointer hover:text-primary">Marketers</Link>
-          <span className="text-muted cursor-pointer hover:text-primary">Community</span>
         </div>
         <div className="flex gap-4 items-center">
           <Link to="/login" className="px-6 py-2 rounded-xl text-muted neomorph-raised neomorph-active transition-all font-semibold">

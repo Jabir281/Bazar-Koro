@@ -787,7 +787,15 @@ export default function Dashboard() {
         {/* MARKETER SECTION */}
         {user.activeRole === "marketer" && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-extrabold tracking-tight">Marketer Dashboard</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-extrabold tracking-tight">Marketer Dashboard</h2>
+              <button 
+                onClick={() => navigate('/marketer/analytics')}
+                className="px-6 py-2 rounded-xl text-primary font-bold neomorph-raised hover:neomorph-inset transition-all flex items-center gap-2"
+              >
+                View Ad Analytics
+              </button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Ad Campaigns */}
