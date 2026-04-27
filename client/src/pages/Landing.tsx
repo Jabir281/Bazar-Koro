@@ -9,7 +9,8 @@ export default function Landing() {
         <div className="text-2xl font-bold text-primary tracking-tight">Bazar Koro</div>
         <div className="hidden md:flex gap-8 items-center font-medium">
           <Link to="/" className="text-primary border-b-2 border-primary pb-1">Marketplace</Link>
-          <span className="text-muted cursor-pointer hover:text-primary">Marketers</span>
+          {/* UPDATED: Nav link for Marketers */}
+          <Link to="/marketer/dashboard" className="text-muted cursor-pointer hover:text-primary">Marketers</Link>
           <span className="text-muted cursor-pointer hover:text-primary">Community</span>
         </div>
         <div className="flex gap-4 items-center">
@@ -125,8 +126,9 @@ export default function Landing() {
                   <li className="flex items-center gap-2 text-sm font-medium"><ShieldCheck className="text-primary w-4 h-4" /> Risk-free earning</li>
                   <li className="flex items-center gap-2 text-sm font-medium"><ShieldCheck className="text-primary w-4 h-4" /> Boost local businesses</li>
                 </ul>
-                <Link to="/signup?role=marketer" className="block text-center w-full py-3 rounded-xl neomorph-raised neomorph-active text-primary font-bold">
-                  Start Earning
+                {/* UPDATED: Card link for Marketers */}
+                <Link to="/marketer/dashboard" className="block text-center w-full py-3 rounded-xl neomorph-raised neomorph-active text-primary font-bold">
+                  Go to Dashboard
                 </Link>
               </div>
             </div>
