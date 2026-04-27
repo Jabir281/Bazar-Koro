@@ -5,6 +5,10 @@ import type { UserRole } from '@bazar-koro/shared'
 import { hashPassword, signToken, verifyPassword } from '../auth.js'
 import { createUser, getUserByEmail, getUserById, addRoleToUser } from '../storage.js'
 import type { AuthedRequest } from '../middleware/auth.js'
+import { OAuth2Client } from 'google-auth-library'
+import { env } from '../env.js'
+
+const googleClient = new OAuth2Client(env.googleClientId)
 
 const rolesSchema = z.array(z.enum(['buyer', 'seller', 'driver', 'marketer', 'admin'] as const)).min(1)
 
@@ -53,6 +57,38 @@ export async function loginRoute(req: Request, res: Response) {
 
     const ok = await verifyPassword(parsed.data.password, user.passwordHash)
     if (!ok) return res.status(401).json({ error: 'Invalid credentials' })
+
+    const token = signToken(user)
+    return res.json({ token, user: { id: user.id, name: user.name, email: user.email, roles: user.roles } })
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Server error', details: error.message })
+  }
+}
+
+export async function googleLoginRoute(req: Request, res: Response) {
+  const parsed = z.object({ idToken: z.string() }).safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() })
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: parsed.data.idToken,
+      audience: env.googleClientId,
+    })
+    const payload = ticket.getPayload()
+    if (!payload || !payload.email) return res.status(401).json({ error: 'Invalid Google token' })
+
+    let user = await getUserByEmail(payload.email)
+    if (!user) {
+      // Create user if they don't exist, default role 'buyer'
+      const randomPasswordLog = Math.random().toString(36).slice(-8)
+      const passwordHash = await hashPassword(randomPasswordLog)
+      user = await createUser({
+        name: payload.name || payload.email.split('@')[0],
+        email: payload.email,
+        roles: ['buyer'],
+        passwordHash,
+      })
+    }
 
     const token = signToken(user)
     return res.json({ token, user: { id: user.id, name: user.name, email: user.email, roles: user.roles } })

@@ -5,7 +5,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 import { healthRoute } from './routes/health.js'
-import { addRoleRoute, loginRoute, meRoute, registerRoute } from './routes/auth.js'
+import { addRoleRoute, loginRoute, meRoute, registerRoute, googleLoginRoute } from './routes/auth.js'
 import { searchRoute, suggestRoute } from './routes/search.js'
 import { getProductRoute, getProductsByStoreRoute, updateProductRoute } from './routes/products.js'
 import { requireAuth } from './middleware/auth.js'
@@ -49,6 +49,7 @@ export function createApp() {
 
   app.post('/api/auth/register', registerRoute as express.RequestHandler)
   app.post('/api/auth/login', loginRoute as express.RequestHandler)
+  app.post('/api/auth/google', googleLoginRoute as express.RequestHandler)
   app.get('/api/me', requireAuth, meRoute as express.RequestHandler)
   app.post('/api/me/roles', requireAuth, addRoleRoute as express.RequestHandler)
 
