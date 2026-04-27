@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express'
 import cors from 'cors'
 import path from 'path'
@@ -23,9 +24,12 @@ import { getAdminStoresRoute, getAdminStoreRoute, updateStoreStatusRoute, update
 import { addReviewRoute, getStoreReviewsRoute, getProductReviewsRoute } from './routes/reviews.js';
 import { promoteProductRoute, getAdStatusRoute, cancelPromotionRoute, getActivePromotionsRoute } from './routes/promotions.js';
 
-// Order payments
+// Order payments & Ads
 import paymentRoutes from './routes/payment.js'
 import { getActiveAdRoute, trackImpressionRoute, trackClickRoute, uploadAdRoute, getAdAnalyticsRoute } from './routes/ads.js';
+
+// Coupons
+import couponRoutes from './routes/couponRoutes.js';
 
 export function createApp() {
   const app = express()
@@ -35,14 +39,13 @@ export function createApp() {
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-active-role'],
   }))
-  app.use(express.json({ limit: '10mb' })) // increased limit for base64 uploading
+  app.use(express.json({ limit: '10mb' }))
 
   app.get('/api/health', healthRoute)
   app.get('/api/search', searchRoute)
   app.get('/api/search/suggest', suggestRoute)
   app.get('/api/products/:id', getProductRoute)
   app.put('/api/products/:id', requireAuth, updateProductRoute as express.RequestHandler)
-  //app.delete('/api/products/:id', requireAuth, deleteProductRoute as express.RequestHandler)
 
   app.post('/api/auth/register', registerRoute as express.RequestHandler)
   app.post('/api/auth/login', loginRoute as express.RequestHandler)
@@ -54,7 +57,6 @@ export function createApp() {
   app.post('/api/orders', requireAuth, createOrderRoute);
   app.get('/api/orders/:id', requireAuth, getOrderRoute);
   app.patch('/api/orders/:id/status', requireAuth, updateOrderStatusRoute);
-
   app.get('/api/orders/store/:storeId', requireAuth, listStoreOrdersRoute);
 
   // Reviews
@@ -70,6 +72,9 @@ export function createApp() {
 
   // Payment Router
   app.use('/api/payment', paymentRoutes)
+
+  // Coupons
+  app.use('/api/coupons', couponRoutes);
 
   // Driver
   app.get('/api/driver/overview', requireAuth, driverOverviewRoute)
