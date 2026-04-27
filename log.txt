@@ -1,0 +1,46 @@
+npm warn deprecated q@1.5.1: You or someone you depend on is using Q, the JavaScript Promise library that gave JavaScript developers strong feelings about promises. They can almost certainly migrate to the native JavaScript promise now. Thank you literally everyone for joining me in this bet against the odds. Be excellent to each other.
+npm warn deprecated
+npm warn deprecated (For a CapTP with native promises, see @endo/eventual-send and @endo/captp)
+
+added 421 packages, and audited 425 packages in 6s
+
+94 packages are looking for funding
+  run `npm fund` for details
+
+11 vulnerabilities (5 moderate, 6 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> build
+> npm run build -w shared && npm run build -w server && npm run build -w client
+
+
+> @bazar-koro/shared@0.0.0 build
+> tsc -p tsconfig.json
+
+
+> @bazar-koro/server@0.0.0 build
+> tsc -p tsconfig.json
+
+
+> client@0.0.0 build
+> tsc -b && vite build
+
+src/pages/Cart.tsx(33,10): error TS6133: 'error' is declared but its value is never read.
+src/pages/Dashboard.tsx(93,10): error TS6133: 'reviewModalOpen' is declared but its value is never read.
+src/pages/Dashboard.tsx(100,10): error TS6133: 'driverGoalInput' is declared but its value is never read.
+src/pages/Dashboard.tsx(306,9): error TS6133: 'handleReviewSubmit' is declared but its value is never read.
+npm error Lifecycle script `build` failed with error:
+npm error code 2
+npm error path /home/u203524682/domains/bazarkoro1.com/public_html/.builds/source/repository/client
+npm error workspace client@0.0.0
+npm error location /home/u203524682/domains/bazarkoro1.com/public_html/.builds/source/repository/client
+npm error command failed
+npm error command sh -c tsc -b && vite build
+[31mERROR: Failed to build the application[0m

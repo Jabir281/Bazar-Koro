@@ -30,7 +30,7 @@ interface CartSummary {
 export default function Cart() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<CartSummary | null>(null);
   const [busyProductId, setBusyProductId] = useState<string | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
