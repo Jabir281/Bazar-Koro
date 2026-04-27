@@ -26,7 +26,7 @@ import { promoteProductRoute, getAdStatusRoute, cancelPromotionRoute, getActiveP
 
 // Order payments & Ads
 import paymentRoutes from './routes/payment.js'
-import { getActiveAdRoute, trackImpressionRoute, trackClickRoute, uploadAdRoute, getAdAnalyticsRoute } from './routes/ads.js';
+import { getActiveAdRoute, trackImpressionRoute, trackClickRoute, uploadAdRoute, getAdAnalyticsRoute, deleteAdRoute } from './routes/ads.js';
 
 // Coupons
 import couponRoutes from './routes/couponRoutes.js';
@@ -112,6 +112,7 @@ export function createApp() {
   app.post('/api/ads/:id/click', trackClickRoute as express.RequestHandler)
   app.post('/api/ads', requireAuth, uploadAdRoute as express.RequestHandler)
   app.get('/api/ads/analytics', requireAuth, getAdAnalyticsRoute as express.RequestHandler)
+  app.delete('/api/ads/:id', requireAuth, deleteAdRoute as express.RequestHandler)
 
   // In production, serve the built React app from client/dist.
   // Compiled file lives at server/dist/app.js, so client/dist is two levels up.

@@ -17,6 +17,7 @@ export interface IUser {
   };
   lastLocationUpdate?: Date;
   driverDailyGoal?: number;
+  adPoints?: number;
 }
 
 const userSchema = new mongoose.Schema<IUser>(
@@ -44,6 +45,7 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     lastLocationUpdate: { type: Date, default: null },
     driverDailyGoal: { type: Number, default: 0 },
+    adPoints: { type: Number, default: 500 },
   },
   { timestamps: true }
 );

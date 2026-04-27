@@ -18,6 +18,7 @@ export interface UserPublic {
   name: string;
   email: string;
   roles: UserRole[];
+  adPoints?: number;
 }
 
 export interface CartLine {
