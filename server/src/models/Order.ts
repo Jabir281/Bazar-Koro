@@ -27,6 +27,8 @@ const orderSchema = new mongoose.Schema({
     enum: ['placed', 'paid', 'accepted', 'rejected', 'ready_for_pickup', 'claimed', 'at_store', 'picked_up', 'on_the_way', 'delivered'],
     default: 'placed'
   },
+  marketerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  commissionAmount: { type: Number, default: 0 },
   deliveryFee: { type: Number, default: 0 },
   deliveryDistanceKm: { type: Number, default: 0 },
   delivery: {
@@ -47,7 +49,7 @@ orderSchema.pre('validate', async function() {
     this.pricing = { subtotal: 0, discountAmount: 0, total: 0, couponCode: null } as any;
   }
 
-  if (this.lines && !this.pricing.subtotal) {
+  if (this.lines && this.pricing && !this.pricing.subtotal) {
     this.pricing.subtotal = this.lines.reduce((acc, line) => acc + (line.unitPrice * line.qty), 0);
     this.pricing.total = this.pricing.subtotal - (this.pricing.discountAmount || 0);
   }
