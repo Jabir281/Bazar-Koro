@@ -96,10 +96,14 @@ export default function Dashboard() {
   const [reviewComment, setReviewComment] = useState("");
   
   // --- DRIVER STATE ---
+  // EXPLANATION: These variables store the Driver's current information in memory. 
+  // It remembers if they are online, how much they earned today, and their active deliveries.
   const [driverOverview, setDriverOverview] = useState<DriverOverview | null>(null);
   const [, setDriverGoalInput] = useState("");
 
   // --- MARKETER STATE ---
+  // EXPLANATION: These variables store the Marketer's information.
+  // It handles what products they can promote, their ad budgets, and the affiliate links they create.
   const [products, setProducts] = useState<any[]>([]);
   const [selectedCampaignProduct, setSelectedCampaignProduct] = useState("");
   const [campaignLoading, setCampaignLoading] = useState(false);
@@ -112,6 +116,9 @@ export default function Dashboard() {
     fetchUserData();
   }, [selectedRole]);
 
+  // EXPLANATION for Auto-refresh: 
+  // This is a background helper (like a heartbeat). If the user is logged in as a driver AND is online, 
+  // it silently checks the server every 30 seconds for new orders or updates so the driver's screen doesn't need to be manually refreshed.
   // Auto-refresh driver overview every 30 seconds when online
   useEffect(() => {
     if (selectedRole !== 'driver' || !driverOverview?.isOnline) return;
@@ -138,6 +145,9 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [selectedRole, driverOverview?.isOnline]);
 
+  // EXPLANATION for Geolocation:
+  // This block asks the driver's phone/browser for permission to see their GPS location.
+  // When they are moving, it continuously "watches" their GPS coordinates and sends them back to the server so customers know where their delivery is.
   // Request geolocation permission and update location periodically
   useEffect(() => {
     if (selectedRole !== 'driver') return;
@@ -378,6 +388,9 @@ export default function Dashboard() {
   };
 
   // --- MARKETER ACTIONS ---
+  // EXPLANATION: This function runs when a marketer clicks "Launch Campaign".
+  // It takes the product they chose, their budget, and how many days it should run, 
+  // and talks to the backend to set up the sponsored ad in the store.
   const handleStartCampaign = async () => {
     if (!selectedCampaignProduct) return alert("Please select a product to promote!");
     setCampaignLoading(true);
@@ -679,6 +692,9 @@ export default function Dashboard() {
         )}
 
         {/* DRIVER SECTION */}
+        {/* EXPLANATION: This is the actual shape of the Driver's screen. 
+            It contains the Go Online/Offline toggle, shows their Earnings (৳) in a big box, 
+            and lists the step-by-step actions (Arrived -> Picked Up -> Delivered) for their active orders. */}
         {user.activeRole === "driver" && driverOverview && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -785,6 +801,9 @@ export default function Dashboard() {
         )}
 
         {/* MARKETER SECTION */}
+        {/* EXPLANATION: This is the actual shape of the Marketer's screen.
+            It is split into two boxes: one to pay for Sponsored Ads (to push a product to the top), 
+            and another to generate special Affiliate Links to share and earn commissions. */}
         {user.activeRole === "marketer" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
