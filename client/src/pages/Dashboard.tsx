@@ -85,9 +85,12 @@ export default function Dashboard() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // EXPLANATION [Feature: Roles]: This line remembers which "Mode" the user is currently using (buyer, seller, driver, marketer)
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
 
   // --- BUYER & SELLER STATE ---
+  // EXPLANATION [Feature: Stores]: This simply holds the list of shops to display on the screen. 
+  // It handles both the stores for the Buyer to shop from, and the Seller's own stores to manage.
   const [stores, setStores] = useState<UserStore[]>([]);
   const [buyerOrders, setBuyerOrders] = useState<BuyerOrder[]>([]);
   const [, setReviewModalOpen] = useState(false);
@@ -267,6 +270,8 @@ export default function Dashboard() {
       }
 
       if (resolvedRole === "marketer") {
+        // EXPLANATION [Feature: Analytics/Ads]: When switching to Marketer mode, this block automatically talks to the backend 
+        // to grab all the products from the seller's shops so they can pick which ones to run sponsored ads for.
         try {
           const storeRes = await fetch("/api/stores", { 
             headers: { "Authorization": `Bearer ${token}`, "x-active-role": "seller" } 
@@ -353,6 +358,8 @@ export default function Dashboard() {
     }
   };
 
+  // EXPLANATION [Feature: Roles]: When a user selects a new role (like switching from Buyer to Seller) from the dropdown at the top, 
+  // this function asks the backend to update their "activeRole" and then refreshes the screen to show the completely different dashboard.
   const handleRoleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newRole = e.target.value as UserRole;
     if (!user) return;
@@ -606,6 +613,9 @@ export default function Dashboard() {
                           </div>
                         ))}
                       </div>
+                      
+                      {/* EXPLANATION [Feature: Proof of Delivery]: Show a secret 4-digit PIN on the buyer's screen once the driver takes the food. 
+                          The buyer tells this number to the driver so the driver can prove they dropped the food off at the correct house. */}
                       {order.delivery?.deliveryPin && order.status !== 'delivered' && order.status !== 'rejected' && (
                         <div className="mt-4 pt-4 border-t border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <div className="flex items-center gap-2 text-sm text-muted">
@@ -626,6 +636,9 @@ export default function Dashboard() {
         )}
 
         {/* SELLER SECTION */}
+        {/* EXPLANATION [Feature: Stores]: This displays the Seller Hub. 
+            It lists all the shops the seller has created. There is a "Create Store" button that opens a new page to set one up. 
+            Below the stores, it shows the "Incoming Orders" area using the <SellerOMS /> tool so sellers know what customers bought. */}
         {user.activeRole === "seller" && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
@@ -808,6 +821,7 @@ export default function Dashboard() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-extrabold tracking-tight">Marketer Dashboard</h2>
+              {/* EXPLANATION [Feature: Analytics/Ads]: This button takes the Marketer away from the dashboard and straight to the Analytics page where they can see bar charts and pie charts of how well their ad is doing. */}
               <button 
                 onClick={() => navigate('/marketer/analytics')}
                 className="px-6 py-2 rounded-xl text-primary font-bold neomorph-raised hover:neomorph-inset transition-all flex items-center gap-2"
