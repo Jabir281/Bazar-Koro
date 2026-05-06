@@ -9,4 +9,5 @@ export const env = {
   mongoUri: process.env.MONGODB_URI ?? '',
   googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY ?? '',
   googleClientId: process.env.OUTH_GOOGLE_CLIENT_ID ?? '',
+  clientUrl: process.env.CLIENT_URL ?? 'http://localhost:5173',
 } as const

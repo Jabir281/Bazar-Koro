@@ -9,6 +9,7 @@ import { Cart } from '../models/Cart.js';
 import { computeSummary } from './cart.js';
 import { sendDigitalReceipt } from '../utils/sendReceipt.js';
 import { User } from '../models/User.js';
+import { env } from '../env.js';
 
 // --- NEW IMPORTS FOR MARKETER ---
 import Campaign from '../models/Campaign.js';
@@ -145,8 +146,8 @@ router.post(
         invoice_creation: {
           enabled: true,
         },
-        success_url: `http://localhost:5173/success?orderId=${order._id}`,
-        cancel_url: "http://localhost:5173/cancel",
+        success_url: `${env.clientUrl}/success?orderId=${order._id}`,
+        cancel_url: `${env.clientUrl}/cancel`,
       };
 
       // PASS COUPON TO STRIPE (Requires the promo code ID to exist in your Stripe Dashboard)
@@ -275,8 +276,8 @@ router.post(
           quantity: 1,
         }],
         mode: "payment",
-        success_url: `http://localhost:5173/success?campaignId=${campaign._id}`,
-        cancel_url: "http://localhost:5173/cancel",
+        success_url: `${env.clientUrl}/success?campaignId=${campaign._id}`,
+        cancel_url: `${env.clientUrl}/cancel`,
       });
 
       return res.json({ url: session.url });
